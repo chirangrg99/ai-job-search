@@ -1,0 +1,34 @@
+begin;
+insert into auth.users(id) values ('11000000-0000-4000-8000-000000000001');
+set local role authenticated;
+set local request.jwt.claim.sub = '11000000-0000-4000-8000-000000000001';
+insert into public.candidate_profiles(id,full_name,personal_verified) values ('21000000-0000-4000-8000-000000000001','Synthetic test',true);
+do $$ declare r public.candidate_profiles; f public.candidate_facts; begin
+ select * into r from public.candidate_profiles;
+ if r.personal_verified then raise exception 'insert silently verified';end if;
+ update public.candidate_profiles set personal_verified=true;
+ select * into r from public.candidate_profiles;
+ if not r.personal_verified or r.personal_verified_at is null then raise exception 'verification failed';end if;
+ update public.candidate_profiles set professional_summary='Synthetic summary';
+ select * into r from public.candidate_profiles;
+ if not r.personal_verified then raise exception 'summary reset unrelated personal verification';end if;
+ update public.candidate_profiles set full_name='Changed',personal_verified=true;
+ select * into r from public.candidate_profiles;
+ if r.personal_verified or r.personal_verified_at is not null then raise exception 'edit retained verification';end if;
+ insert into public.candidate_facts(profile_id,fact_type,title,verified) values(r.id,'skill','Test',true) returning * into f;
+ if f.verified then raise exception 'new fact verified';end if;
+ update public.candidate_facts set verified=true returning * into f;
+ if not f.verified or f.verified_at is null then raise exception 'fact confirmation failed';end if;
+ update public.candidate_facts set title='Edited',verified=true returning * into f;
+ if f.verified or f.verified_at is not null or f.revision<>3 then raise exception 'fact edit verification invalidation failed';end if;
+end $$;
+insert into public.experiences(id,profile_id,company,title) values ('41000000-0000-4000-8000-000000000001','21000000-0000-4000-8000-000000000001','Synthetic employer','Synthetic role');
+insert into public.experience_bullets(experience_id,original_text) values ('41000000-0000-4000-8000-000000000001','Synthetic responsibility');
+update public.experience_bullets set verified=true;
+update public.experiences set company='Changed employer';
+do $$ begin
+ if exists(select 1 from public.experience_bullets where verified) then raise exception 'changed context retained bullet verification';end if;
+ if (select revision from public.experience_bullets) <> 3 then raise exception 'changed context did not bump bullet revision';end if;
+end $$;
+reset role;
+rollback;

@@ -1,0 +1,8 @@
+import type { NextRequest } from "next/server";
+import { refreshSession } from "@/server/supabase/session";
+export async function proxy(request: NextRequest) {
+  return refreshSession(request);
+}
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};

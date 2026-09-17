@@ -1,0 +1,27 @@
+# Scratch tooling, caches, and delivery copies
+work/
+outputs/
+# Never commit credentials or local secret configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store
+
+# Application build, dependencies and test artifacts
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+playwright-report/
+test-results/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Locally installed design tooling
+.agents/
