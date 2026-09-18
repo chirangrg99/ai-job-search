@@ -144,7 +144,7 @@ export class AdzunaJobProvider implements JobProvider {
     url.searchParams.set("results_per_page", String(query.pageSize));
     url.searchParams.set("content-type", "application/json");
     url.searchParams.set("sort_by", "date");
-    url.searchParams.set("sort_dir", "down");
+    // Adzuna Canada rejects sort_dir=down with date sorting despite the published enum.
     if (query.title) url.searchParams.set("title_only", query.title);
     if (query.keywords.length)
       url.searchParams.set("what_and", query.keywords.join(" "));
@@ -187,6 +187,7 @@ export class AdzunaJobProvider implements JobProvider {
         continue;
       }
       if (!response.ok) await response.body?.cancel().catch(() => {});
+      if (response.status === 400) throw new ProviderError("invalid_query");
       if (response.status === 429) {
         await this.deps.cooldown(
           retryAfterSeconds(

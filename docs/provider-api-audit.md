@@ -15,7 +15,7 @@ Reviewed the [interactive reference](https://developer.adzuna.com/activedocs), i
 | what_exclude | Added single-word keyword exclusions. |
 | where, distance | Retained location/radius. Omitted distance uses documented 5 km default. |
 | full_time, part_time, contract, permanent | Apply one supported employment option; never equate full-time with permanent. |
-| sort_by, sort_dir | Date, explicitly descending. |
+| sort_by, sort_dir | Date; omit direction (see live compatibility finding below). |
 | salary_min/max/include_unknown | Deferred until salary units can be established safely. |
 | location0–7, category, company, max_days_old | No equivalent saved controls currently; not invented. |
 
@@ -44,3 +44,9 @@ Changed `provider.ts`, `query-plan.ts`, the Adzuna adapter and its tests, servic
 Regression tests cover title/keyword mapping, exclusions, employment alternatives, HTTP 410, neutral error text and preservation of a delivery search's hourly salary/work-mode criteria for another adapter. All HTTP is mocked with dummy credentials; this audit makes no live-job-result claim.
 
 Checks: `npm test` (267 passing tests), `npm run lint`, `npm run typecheck`, `npm run format:check`, `npm run build`. The final response records completion and the GitHub checkpoint. Existing Phase 5 scope is preserved.
+
+## Live compatibility correction
+
+Following a reported sync failure, a bounded live diagnostic returned HTTP 400 for `sort_by=date&sort_dir=down`. The same Canada search without `sort_dir` returned HTTP 200 and 28 results. This contradicts what the published parameter enum appeared to permit; removed the direction parameter and retained date sorting. No keys or credential-bearing URLs were printed or persisted. Live diagnostics are separate from automated tests, which remain mocked. HTTP 400 now produces an actionable rejected-parameters message without retry. Regression suite: 269 passing tests; lint, typecheck, formatting and production build passed.
+
+Saved titles are separate list entries (one per line in the editor). A comma-separated list inside a single entry is still one title query. Geographic locations should contain places; use the remote-work preference for remote work rather than a location named “Remote”.

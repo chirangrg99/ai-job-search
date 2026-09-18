@@ -45,7 +45,8 @@ export type ProviderErrorCode =
   | "timeout";
 const messages: Record<ProviderErrorCode, string> = {
   configuration: "Configure the job provider credentials to sync jobs.",
-  invalid_query: "The provider query is invalid.",
+  invalid_query:
+    "The job provider rejected the search parameters. Check the saved titles and geographic locations; retrying unchanged will not help.",
   rate_limit:
     "The API request budget or provider rate limit was reached. Try again after the cooldown or quota reset.",
   authentication:

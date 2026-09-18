@@ -267,7 +267,7 @@ it("maps exclusion and one employment option without turning title exclusions in
   expect(params.get("title_only")).toBe("Delivery Driver");
   expect(params.get("what_exclude")).toBe("commission");
   expect(params.get("part_time")).toBe("1");
-  expect(params.get("sort_dir")).toBe("down");
+  expect(params.has("sort_dir")).toBe(false);
   expect(params.has("remote")).toBe(false);
   expect(params.has("what_phrase")).toBe(false);
 });
@@ -293,4 +293,21 @@ it("classifies documented HTTP 410 as an authentication failure", async () => {
     code: "authentication",
   });
   expect(fetcher).toHaveBeenCalledOnce();
+});
+
+it("keeps date sorting without the direction rejected by the Canada endpoint", async () => {
+  const { provider, fetcher } = fixture();
+  await provider.search(query);
+  const params = new URL(String(fetcher.mock.calls[0]?.[0])).searchParams;
+  expect(params.get("sort_by")).toBe("date");
+  expect(params.has("sort_dir")).toBe(false);
+});
+it("reports HTTP 400 as rejected parameters without retry or response leakage", async () => {
+  const { provider, fetcher, sleep } = fixture();
+  fetcher.mockResolvedValue(new Response("private response", { status: 400 }));
+  await expect(provider.search(query)).rejects.toMatchObject({
+    code: "invalid_query",
+  });
+  expect(fetcher).toHaveBeenCalledOnce();
+  expect(sleep).not.toHaveBeenCalled();
 });
