@@ -672,6 +672,7 @@ export type Database = {
           name: string;
           profile_id: string;
           remote_preferences: string[];
+          salary_currency: string | null;
           salary_period: string | null;
           target_locations: string[];
           target_titles: string[];
@@ -692,6 +693,7 @@ export type Database = {
           name: string;
           profile_id: string;
           remote_preferences?: string[];
+          salary_currency?: string | null;
           salary_period?: string | null;
           target_locations?: string[];
           target_titles?: string[];
@@ -712,6 +714,7 @@ export type Database = {
           name?: string;
           profile_id?: string;
           remote_preferences?: string[];
+          salary_currency?: string | null;
           salary_period?: string | null;
           target_locations?: string[];
           target_titles?: string[];

@@ -1,6 +1,6 @@
 # AI Job Application Assistant
 
-Phase 3: application foundation, Supabase authentication and RLS, and a manually editable master candidate profile with explicit verification. AI generation and job-provider ingestion are not implemented.
+Phase 4: application foundation, Supabase authentication and RLS, a verified master candidate profile, and independent saved job searches with deterministic filtering. AI generation and job-provider ingestion are not implemented.
 
 ## Run locally
 
@@ -17,10 +17,11 @@ If file watching reports `EMFILE`, use `WATCHPACK_POLLING=1000 npm run dev`.
 
 ## Architecture
 
-- `src/app/(workspace)`: protected workspace routes (Profile is implemented; other career pages remain shells): `/`, `/jobs`, `/jobs/[jobId]`, `/applications`, `/profile`, `/answers`, `/preferences`, `/settings`.
+- `src/app/(workspace)`: protected workspace routes (Profile and Job Preferences are implemented; other career pages remain shells): `/`, `/jobs`, `/jobs/[jobId]`, `/applications`, `/profile`, `/answers`, `/preferences`, `/settings`.
 - `src/app/login`, `src/app/auth/callback`: sign-in/signup actions and PKCE confirmation.
 - `src/components/layout`, `src/components/ui`: responsive shell and minimal shadcn primitives.
 - `src/features/profile`, `src/server/candidate`: structured profile forms, validation and ownership-scoped persistence. See `docs/profile.md`.
+- `src/features/preferences`, `src/server/preferences`: saved-search management and a provider-neutral deterministic filter. See `docs/saved-searches.md`.
 - `src/features/auth`: accessible auth form and validation.
 - `src/server/auth`, `src/server/supabase`: server-verified identity, profile initialization and typed cookie-based Supabase client.
 - `src/server/env`: Zod environment validation with sanitized failures; credentials stay server-only except the intended public project URL/publishable key.
@@ -55,4 +56,4 @@ Direct dependencies are pinned. ESLint remains on 9.39.5 for compatibility with 
 
 ## Phase boundary
 
-Phase 3 is implemented. No application preparation, AI calls, job discovery, automatic submissions or Storage integration. See `docs/phase-3-report.md` for verification results and limitations. Later phases require explicit authorization.
+Phase 4 is implemented. No application preparation, AI calls, job discovery, automatic submissions or Storage integration. See `docs/phase-4-report.md` for verification results and limitations. Later phases require explicit authorization.

@@ -21,7 +21,7 @@ Automatic submission, external-site browser automation, CAPTCHA handling, Hermes
 | Applications | `/applications` | Prepare packages and track manual applications | Open package | `/applications/:applicationId` Application Package |
 | Profile | `/profile` | Verified master career information | Edit profile | `/profile/edit` Profile Editor |
 | Verified Answers | `/verified-answers` | Candidate-confirmed reusable responses | Add answer | Create/edit in sheet |
-| Job Preferences | `/job-preferences` | Multiple saved searches and fit constraints | New saved search | Create/edit in sheet |
+| Job Preferences | `/preferences` | Multiple saved searches and fit constraints | New saved search | Create/edit in sheet |
 | Settings | `/settings` | Account, display, privacy, provider health | Save settings | Sections within page |
 
 “Dashboard” is the screen name; “Overview” is its navigation label. “Master Profile” is the screen name under “Profile.” Exactly seven primary navigation items. Nested screens keep their parent active. Browser back restores list query, filters, sort, page and scroll position. Proposed routes are documentation only.
