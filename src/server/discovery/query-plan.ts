@@ -22,6 +22,22 @@ export function queriesForSearch(
     locations.map((location) => ({
       title,
       keywords: search.keywords,
+      excludedTitles: search.excluded_titles,
+      excludedKeywords: search.excluded_keywords,
+      employmentTypes: search.employment_types,
+      remotePreferences: search.remote_preferences,
+      minimumFitScore: search.minimum_fit_score,
+      ...(search.min_salary !== null &&
+      search.salary_currency &&
+      search.salary_period
+        ? {
+            salary: {
+              minimum: search.min_salary,
+              currency: search.salary_currency,
+              period: search.salary_period,
+            },
+          }
+        : {}),
       location,
       ...(location && search.max_commute_km !== null
         ? { distanceKm: Math.ceil(search.max_commute_km) }
@@ -30,5 +46,5 @@ export function queriesForSearch(
       pageSize,
     })),
   );
-  // Salary period is not documented in search responses; do not apply a saved hourly/yearly threshold in incompatible provider units.
+  // Adapters decide which filters have equivalent upstream semantics; never discard units here.
 }

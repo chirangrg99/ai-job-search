@@ -40,7 +40,7 @@ it("maps only the provider-neutral DTO and marks snippets/unknown salary period"
     title: "Developer",
     location: "Toronto",
     distanceKm: 20,
-    salaryMinimum: 50000,
+    salary: { minimum: 50000, currency: "CAD", period: "year" },
   });
   expect(result.jobs[0]).toMatchObject({
     provider: "adzuna",
@@ -55,11 +55,11 @@ it("maps only the provider-neutral DTO and marks snippets/unknown salary period"
   const url = new URL(String(fetcher.mock.calls[0]?.[0]));
   expect(url.origin).toBe("https://api.adzuna.com");
   expect(url.pathname).toBe("/v1/api/jobs/ca/search/1");
-  expect(url.searchParams.get("what_phrase")).toBe("Developer");
-  expect(url.searchParams.get("what")).toBe("TypeScript");
+  expect(url.searchParams.get("title_only")).toBe("Developer");
+  expect(url.searchParams.get("what_and")).toBe("TypeScript");
   expect(url.searchParams.get("where")).toBe("Toronto");
   expect(url.searchParams.get("distance")).toBe("20");
-  expect(url.searchParams.get("salary_include_unknown")).toBe("1");
+  expect(url.searchParams.has("salary_min")).toBe(false);
   expect(fetcher.mock.calls[0]?.[1]).toMatchObject({
     cache: "no-store",
     redirect: "error",
@@ -94,7 +94,7 @@ it("ends pagination at application cap", async () => {
     (await provider.search({ ...query, page: 100 })).pagination.nextPage,
   ).toBeNull();
 });
-it.each([401, 403, 400, 404])(
+it.each([401, 403, 410, 400, 404])(
   "does not retry permanent HTTP %s or disclose response body",
   async (status) => {
     const { provider, fetcher, sleep } = fixture();
@@ -251,3 +251,46 @@ it.each([{ page: 0 }, { pageSize: 51 }, { page: 1.5 }, { distanceKm: -1 }])(
     expect(fetcher).not.toHaveBeenCalled();
   },
 );
+
+it("maps exclusion and one employment option without turning title exclusions into global exclusions", async () => {
+  const { provider, fetcher } = fixture();
+  await provider.search({
+    ...query,
+    title: "Delivery Driver",
+    excludedTitles: ["Senior"],
+    excludedKeywords: ["commission", "customer service"],
+    employmentTypes: ["part_time"],
+    remotePreferences: ["remote"],
+    minimumFitScore: 60,
+  });
+  const params = new URL(String(fetcher.mock.calls[0]?.[0])).searchParams;
+  expect(params.get("title_only")).toBe("Delivery Driver");
+  expect(params.get("what_exclude")).toBe("commission");
+  expect(params.get("part_time")).toBe("1");
+  expect(params.get("sort_dir")).toBe("down");
+  expect(params.has("remote")).toBe(false);
+  expect(params.has("what_phrase")).toBe(false);
+});
+it.each([
+  ["full_time", "contract"],
+  ["internship"],
+  ["temporary"],
+  [],
+] as const)(
+  "does not narrow alternative or unsupported employment preferences %j",
+  async (...types) => {
+    const { provider, fetcher } = fixture();
+    await provider.search({ ...query, employmentTypes: [...types] });
+    const params = new URL(String(fetcher.mock.calls[0]?.[0])).searchParams;
+    for (const key of ["full_time", "part_time", "contract", "permanent"])
+      expect(params.has(key)).toBe(false);
+  },
+);
+it("classifies documented HTTP 410 as an authentication failure", async () => {
+  const { provider, fetcher } = fixture();
+  fetcher.mockResolvedValue(new Response("private", { status: 410 }));
+  await expect(provider.search(query)).rejects.toMatchObject({
+    code: "authentication",
+  });
+  expect(fetcher).toHaveBeenCalledOnce();
+});

@@ -74,7 +74,11 @@ it("expands alternative title/location combinations without joining alternatives
     page: 2,
     pageSize: 10,
   });
-  expect(queries[0]).not.toHaveProperty("salaryMinimum");
+  expect(queries[0]?.salary).toEqual({
+    minimum: 20,
+    currency: "CAD",
+    period: "hour",
+  });
 });
 it("rejects disabled and excessively broad query plans", () => {
   expect(() =>
@@ -196,4 +200,33 @@ it.each([
     false,
   );
   expect(repo.start).not.toHaveBeenCalled();
+});
+
+it("preserves provider-neutral criteria for other adapters and job families", () => {
+  const [query] = queriesForSearch(
+    {
+      ...emptyPreference,
+      target_titles: ["DZ Driver"],
+      excluded_titles: ["Supervisor"],
+      excluded_keywords: ["commission"],
+      remote_preferences: ["onsite"],
+      employment_types: ["full_time", "contract"],
+      minimum_fit_score: 65,
+      min_salary: 25,
+      salary_currency: "CAD",
+      salary_period: "hour",
+    },
+    1,
+    20,
+  );
+  expect(query).toMatchObject({
+    title: "DZ Driver",
+    excludedTitles: ["Supervisor"],
+    excludedKeywords: ["commission"],
+    remotePreferences: ["onsite"],
+    employmentTypes: ["full_time", "contract"],
+    minimumFitScore: 65,
+    salary: { minimum: 25, currency: "CAD", period: "hour" },
+  });
+  expect(new ProviderError("authentication").message).not.toContain("Adzuna");
 });

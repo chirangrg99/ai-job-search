@@ -16,11 +16,11 @@ Server actions authenticate independently. Repositories derive the candidate pro
 
 ## Query planning
 
-Only enabled, owned saved searches may run. Titles and locations expand into at most 12 combinations. Titles use `what_phrase`; required keywords use `what`; locations use `where`. A configured distance rounds upward to the API's integer kilometre radius. This geographic radius is not a measured road commute. Empty titles/locations leave those controls unrestricted.
+Only enabled, owned saved searches may run. Titles and locations expand into at most 12 combinations. Titles use `title_only`; required keywords use `what_and`; locations use `where`. A configured distance rounds upward to the API's integer kilometre radius. This geographic radius is not a measured road commute. Empty titles/locations leave those controls unrestricted.
 
-Excluded terms, employment/remote preferences and fit thresholds remain later filtering concerns. The existing Phase 4 deterministic filter is reusable after normalization; discovery does not claim a job passed it.
+Single-word excluded keywords use `what_exclude`. One supported employment selection uses its matching full-time, part-time or contract flag. Multiple employment selections remain unrestricted upstream because the saved search means OR. Excluded titles, multiword exclusions, remote preferences and fit thresholds remain later filtering concerns. The existing Phase 4 deterministic filter is reusable after normalization; discovery does not claim a job passed it.
 
-The adapter supports an optional `salaryMinimum` in provider units. Saved salary floors are not forwarded automatically: the official response schema gives currency but no salary period, so the DTO preserves `salaryPeriod: null` instead of comparing hourly and annual amounts. Estimated-salary flags are retained. Canada results with salary amounts use CAD.
+The provider-neutral query retains salary minimum, currency and period together. Adzuna does not forward this floor automatically: the official response schema gives currency but no salary period, so the DTO preserves `salaryPeriod: null` instead of comparing hourly and annual amounts. Estimated-salary flags are retained. Canada results with salary amounts use CAD.
 
 ## HTTP, limits and failures
 
@@ -41,3 +41,5 @@ The Jobs screen shows the latest 50 received records and 10 runs. It labels reco
 ## Verification
 
 Mocked HTTP tests cover success, pagination, empty and malformed responses, retry bounds, credential/configuration errors and quotas. Repository, service, action and UI tests cover ownership, partial progress, query derivation and manual entry. Transactional SQL tests verify RLS, foreign keys, concurrency and quota windows; fixtures roll back. No real API credentials are used in tests.
+
+For the parameter-by-parameter review and guidance for future adapters, see `docs/provider-api-audit.md`.

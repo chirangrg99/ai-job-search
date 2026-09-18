@@ -1,11 +1,21 @@
 import "server-only";
+import type { Preference } from "@/features/preferences/schema";
 import type { DiscoveredJob } from "@/features/discovery/schema";
 export interface ProviderQuery {
   title?: string;
   keywords: string[];
   location?: string;
   distanceKm?: number;
-  salaryMinimum?: number;
+  excludedTitles?: string[];
+  excludedKeywords?: string[];
+  employmentTypes?: Preference["employment_types"];
+  remotePreferences?: Preference["remote_preferences"];
+  minimumFitScore?: number | null;
+  salary?: {
+    minimum: number;
+    currency: string;
+    period: NonNullable<Preference["salary_period"]>;
+  };
   page: number;
   pageSize: number;
 }
@@ -34,16 +44,16 @@ export type ProviderErrorCode =
   | "malformed_response"
   | "timeout";
 const messages: Record<ProviderErrorCode, string> = {
-  configuration: "Configure both Adzuna server credentials to sync jobs.",
+  configuration: "Configure the job provider credentials to sync jobs.",
   invalid_query: "The provider query is invalid.",
   rate_limit:
     "The API request budget or provider rate limit was reached. Try again after the cooldown or quota reset.",
   authentication:
-    "Adzuna rejected the server credentials. Check the provider account configuration.",
+    "The job provider rejected the server credentials. Check the provider account configuration.",
   provider_error:
-    "Adzuna is temporarily unavailable or rejected the request. Try again later.",
+    "The job provider is temporarily unavailable or rejected the request. Try again later.",
   malformed_response:
-    "Adzuna returned an invalid response. No invalid records were accepted.",
+    "The job provider returned an invalid response. No invalid records were accepted.",
   timeout: "The request timed out. Try syncing a smaller page.",
 };
 export class ProviderError extends Error {

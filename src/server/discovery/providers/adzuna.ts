@@ -1,6 +1,11 @@
 import "server-only";
 import { z } from "zod";
 import {
+  employmentTypes,
+  remoteModes,
+  salaryPeriods,
+} from "@/features/preferences/schema";
+import {
   discoveredJobSchema,
   type DiscoveredJob,
 } from "@/features/discovery/schema";
@@ -19,7 +24,18 @@ const querySchema = z.object({
   keywords: z.array(z.string().max(120)).max(50),
   location: z.string().max(120).optional(),
   distanceKm: z.number().int().min(0).max(2000).optional(),
-  salaryMinimum: z.number().int().nonnegative().optional(),
+  excludedTitles: z.array(z.string().max(120)).max(50).default([]),
+  excludedKeywords: z.array(z.string().max(120)).max(50).default([]),
+  employmentTypes: z.array(z.enum(employmentTypes)).max(7).default([]),
+  remotePreferences: z.array(z.enum(remoteModes)).max(3).default([]),
+  minimumFitScore: z.number().int().min(0).max(100).nullish(),
+  salary: z
+    .object({
+      minimum: z.number().finite().nonnegative(),
+      currency: z.string().regex(/^[A-Z]{3}$/),
+      period: z.enum(salaryPeriods),
+    })
+    .optional(),
   page: z.number().int().min(1).max(100),
   pageSize: z.number().int().min(1).max(50),
 });
@@ -128,18 +144,32 @@ export class AdzunaJobProvider implements JobProvider {
     url.searchParams.set("results_per_page", String(query.pageSize));
     url.searchParams.set("content-type", "application/json");
     url.searchParams.set("sort_by", "date");
-    if (query.title) url.searchParams.set("what_phrase", query.title);
+    url.searchParams.set("sort_dir", "down");
+    if (query.title) url.searchParams.set("title_only", query.title);
     if (query.keywords.length)
-      url.searchParams.set("what", query.keywords.join(" "));
+      url.searchParams.set("what_and", query.keywords.join(" "));
+    // Multiword exclusions cannot be split: excluding "customer service" must not exclude every "service" role.
+    const excludedWords = query.excludedKeywords.filter((term) =>
+      /^[\p{L}\p{N}_]+$/u.test(term),
+    );
+    if (excludedWords.length)
+      url.searchParams.set("what_exclude", excludedWords.join(" "));
+    // Multiple saved types mean OR, while combining Adzuna flags may mean AND.
+    const [employment] = query.employmentTypes;
+    if (
+      query.employmentTypes.length === 1 &&
+      (employment === "full_time" ||
+        employment === "part_time" ||
+        employment === "contract")
+    )
+      url.searchParams.set(employment, "1");
     if (query.location) {
       url.searchParams.set("where", query.location);
       if (query.distanceKm !== undefined)
         url.searchParams.set("distance", String(query.distanceKm));
     }
-    if (query.salaryMinimum !== undefined) {
-      url.searchParams.set("salary_min", String(query.salaryMinimum));
-      url.searchParams.set("salary_include_unknown", "1");
-    }
+    // No documented salary period: retain the unit-aware preference for later filtering.
+    // No title exclusion, remote-mode or experience-range parameters are documented.
     for (let attempt = 0; attempt < 3; attempt++) {
       if (!(await this.deps.reserveRequest()))
         throw new ProviderError("rate_limit");
@@ -156,6 +186,7 @@ export class AdzunaJobProvider implements JobProvider {
         await this.deps.sleep(1000 * 2 ** attempt);
         continue;
       }
+      if (!response.ok) await response.body?.cancel().catch(() => {});
       if (response.status === 429) {
         await this.deps.cooldown(
           retryAfterSeconds(
@@ -165,7 +196,11 @@ export class AdzunaJobProvider implements JobProvider {
         );
         throw new ProviderError("rate_limit");
       }
-      if (response.status === 401 || response.status === 403)
+      if (
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 410
+      )
         throw new ProviderError("authentication");
       if (response.status === 408 || response.status >= 500) {
         if (attempt === 2) throw new ProviderError("provider_error");
