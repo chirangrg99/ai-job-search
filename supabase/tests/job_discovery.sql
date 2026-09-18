@@ -1,0 +1,53 @@
+begin;
+insert into auth.users(id) values ('13000000-0000-4000-8000-000000000001'),('13000000-0000-4000-8000-000000000002');
+insert into public.candidate_profiles(id,user_id) values ('23000000-0000-4000-8000-000000000001','13000000-0000-4000-8000-000000000001'),('23000000-0000-4000-8000-000000000002','13000000-0000-4000-8000-000000000002');
+insert into public.job_sources(id,profile_id,provider,display_name) values ('43000000-0000-4000-8000-000000000001','23000000-0000-4000-8000-000000000001','manual','Manual'),('43000000-0000-4000-8000-000000000002','23000000-0000-4000-8000-000000000002','manual','Manual');
+insert into public.job_sync_runs(id,profile_id,source_id,provider) values ('53000000-0000-4000-8000-000000000001','23000000-0000-4000-8000-000000000001','43000000-0000-4000-8000-000000000001','manual'),('53000000-0000-4000-8000-000000000002','23000000-0000-4000-8000-000000000002','43000000-0000-4000-8000-000000000002','manual');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','13000000-0000-4000-8000-000000000001',true);
+do $$ begin
+ if (select count(*) from public.job_sync_runs)<>1 then raise exception 'Sync history RLS failed'; end if;
+ begin insert into public.job_sync_runs(profile_id,source_id,provider) values ('23000000-0000-4000-8000-000000000001','43000000-0000-4000-8000-000000000001','manual');raise exception 'Concurrent sync accepted';exception when unique_violation then null;end;
+ begin insert into public.job_discoveries(profile_id,run_id,provider,external_id,dto) values ('23000000-0000-4000-8000-000000000001','53000000-0000-4000-8000-000000000002','manual','test','{}');raise exception 'Foreign run accepted';exception when foreign_key_violation then null;end;
+ begin insert into public.job_discoveries(profile_id,run_id,provider,external_id,dto) values ('23000000-0000-4000-8000-000000000002','53000000-0000-4000-8000-000000000002','manual','test','{}');raise exception 'Foreign owner accepted';exception when insufficient_privilege then null;end;
+ insert into public.job_discoveries(profile_id,run_id,provider,external_id,dto) values ('23000000-0000-4000-8000-000000000001','53000000-0000-4000-8000-000000000001','manual','test','{}');
+ update public.job_sync_runs set status='completed',received_count=1,finished_at=clock_timestamp() where id='53000000-0000-4000-8000-000000000001';
+ if not found then raise exception 'Sync finalization failed';end if;
+ begin perform * from private.adzuna_requests;raise exception 'Quota rows exposed';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+-- Test budgets in a transaction; existing request history is restored on rollback.
+delete from private.adzuna_requests;
+update private.adzuna_cooldown set until_at='-infinity';
+set local role authenticated;
+do $$ begin
+ for i in 1..25 loop if not public.reserve_adzuna_request() then raise exception 'Budget denied too early';end if;end loop;
+ if public.reserve_adzuna_request() then raise exception 'Minute quota exceeded';end if;
+end $$;
+reset role;
+delete from private.adzuna_requests;
+insert into private.adzuna_requests select clock_timestamp()-interval '2 minutes' from generate_series(1,250);
+set local role authenticated;
+do $$ begin if public.reserve_adzuna_request() then raise exception 'Day quota exceeded';end if;end $$;
+reset role;
+delete from private.adzuna_requests;
+insert into private.adzuna_requests select clock_timestamp()-interval '2 days' from generate_series(1,1000);
+set local role authenticated;
+do $$ begin if public.reserve_adzuna_request() then raise exception 'Week quota exceeded';end if;end $$;
+reset role;
+delete from private.adzuna_requests;
+insert into private.adzuna_requests select clock_timestamp()-interval '8 days' from generate_series(1,2500);
+set local role authenticated;
+do $$ begin if public.reserve_adzuna_request() then raise exception 'Month quota exceeded';end if;end $$;
+reset role;
+delete from private.adzuna_requests;
+set local role authenticated;
+do $$ begin perform public.reserve_adzuna_request(60);if public.reserve_adzuna_request() then raise exception 'Cooldown ignored';end if;end $$;
+reset role;
+set local role anon;
+do $$ begin
+ begin perform public.reserve_adzuna_request();raise exception 'Anonymous quota access';exception when insufficient_privilege then null;end;
+ begin perform * from public.job_discoveries;raise exception 'Anonymous intake access';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+rollback;

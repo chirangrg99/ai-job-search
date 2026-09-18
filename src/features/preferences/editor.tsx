@@ -288,8 +288,8 @@ export function SearchEditor({
                 </p>
                 <p className="text-xs text-text-secondary">
                   Unknown data stays eligible for review with reasons. A salary
-                  range overlapping your minimum does not guarantee it. No jobs
-                  are fetched yet.
+                  range overlapping your minimum does not guarantee it. Saving
+                  criteria does not fetch jobs; use Sync jobs on the Jobs page.
                 </p>
               </div>
               {error && (

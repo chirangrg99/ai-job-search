@@ -656,6 +656,54 @@ export type Database = {
           },
         ];
       };
+      job_discoveries: {
+        Row: {
+          dto: Json;
+          external_id: string;
+          id: string;
+          profile_id: string;
+          provider: string;
+          received_at: string;
+          run_id: string;
+          status: string;
+        };
+        Insert: {
+          dto: Json;
+          external_id: string;
+          id?: string;
+          profile_id: string;
+          provider: string;
+          received_at?: string;
+          run_id: string;
+          status?: string;
+        };
+        Update: {
+          dto?: Json;
+          external_id?: string;
+          id?: string;
+          profile_id?: string;
+          provider?: string;
+          received_at?: string;
+          run_id?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_discoveries_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_discoveries_run_id_profile_id_fkey";
+            columns: ["run_id", "profile_id"];
+            isOneToOne: false;
+            referencedRelation: "job_sync_runs";
+            referencedColumns: ["id", "profile_id"];
+          },
+        ];
+      };
       job_preferences: {
         Row: {
           created_at: string;
@@ -771,6 +819,76 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "candidate_profiles";
             referencedColumns: ["id"];
+          },
+        ];
+      };
+      job_sync_runs: {
+        Row: {
+          error_code: string | null;
+          error_message: string | null;
+          finished_at: string | null;
+          id: string;
+          pagination: Json;
+          preference_id: string | null;
+          profile_id: string;
+          provider: string;
+          received_count: number;
+          rejected_count: number;
+          source_id: string;
+          started_at: string;
+          status: string;
+        };
+        Insert: {
+          error_code?: string | null;
+          error_message?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          pagination?: Json;
+          preference_id?: string | null;
+          profile_id: string;
+          provider: string;
+          received_count?: number;
+          rejected_count?: number;
+          source_id: string;
+          started_at?: string;
+          status?: string;
+        };
+        Update: {
+          error_code?: string | null;
+          error_message?: string | null;
+          finished_at?: string | null;
+          id?: string;
+          pagination?: Json;
+          preference_id?: string | null;
+          profile_id?: string;
+          provider?: string;
+          received_count?: number;
+          rejected_count?: number;
+          source_id?: string;
+          started_at?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_sync_runs_preference_id_profile_id_fkey";
+            columns: ["preference_id", "profile_id"];
+            isOneToOne: false;
+            referencedRelation: "job_preferences";
+            referencedColumns: ["id", "profile_id"];
+          },
+          {
+            foreignKeyName: "job_sync_runs_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_sync_runs_source_id_profile_id_fkey";
+            columns: ["source_id", "profile_id"];
+            isOneToOne: false;
+            referencedRelation: "job_sources";
+            referencedColumns: ["id", "profile_id"];
           },
         ];
       };
@@ -970,7 +1088,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      reserve_adzuna_request: {
+        Args: { delay_seconds?: number };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;

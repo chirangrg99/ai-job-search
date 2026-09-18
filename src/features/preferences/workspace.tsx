@@ -120,9 +120,9 @@ export function PreferencesWorkspace({
         <h2 className="font-semibold">Saved searches, one profile</h2>
         <p className="mt-2 text-sm text-text-secondary">
           Each search keeps its own titles, locations and limits. Pausing or
-          deleting a search does not remove your profile or existing jobs. Job
-          discovery is not connected yet; no searches have been run by this
-          feature.
+          deleting a search does not remove your profile or existing jobs. Run
+          enabled searches manually from Jobs. Enabling a search does not start
+          a sync.
         </p>
       </section>
       {!searches.length ? (

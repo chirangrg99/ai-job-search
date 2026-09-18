@@ -1,12 +1,15 @@
-import type { Metadata } from "next";
-import { RouteShell } from "@/components/layout/route-shell";
-
-export const metadata: Metadata = { title: "Jobs" };
-export default function Page() {
+import { requireUser } from "@/server/auth/guard";
+import { discoveryRepository } from "@/server/discovery/repository";
+import { createAdzunaProvider } from "@/server/discovery/factory";
+import { DiscoveryWorkspace } from "@/features/discovery/workspace";
+export const metadata = { title: "Jobs" };
+export const maxDuration = 300;
+export default async function JobsPage() {
+  const { client, user } = await requireUser();
   return (
-    <RouteShell
-      title="Jobs"
-      description="Review opportunities that match your preferences."
+    <DiscoveryWorkspace
+      data={await discoveryRepository(client, user.id).overview()}
+      configured={createAdzunaProvider(client).validateConfiguration().valid}
     />
   );
 }

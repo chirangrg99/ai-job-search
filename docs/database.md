@@ -84,3 +84,7 @@ Standalone Playwright remains subject to the host's Chromium launch restriction 
 - [Supabase SSR client and session guidance](https://supabase.com/docs/guides/auth/server-side/creating-a-client?framework=nextjs&queryGroups=framework)
 - [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Explicit Data API grants change](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically)
+
+## Phase 5 discovery additions
+
+`job_sync_runs` records owner-scoped attempts and `job_discoveries` stores validated DTOs awaiting normalization. Composite foreign keys prevent cross-owner linkage. A partial unique index permits one running sync per profile/provider. Private quota/cooldown tables have explicit denial policies; a narrowly scoped authenticated RPC reserves requests atomically. See `docs/job-discovery.md` and `docs/phase-5-report.md` for both deployed migrations and verification. Normalized `jobs` remains untouched by discovery.
