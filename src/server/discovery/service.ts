@@ -24,6 +24,12 @@ export async function syncSearch(
   const search = await repo.enabledSearch(preferenceId);
   const queries = queriesForSearch(search, page, pageSize);
   const run = await repo.start(provider.identifier, preferenceId);
+  const outcomes = {
+    new: 0,
+    exact_duplicate: 0,
+    likely_duplicate: 0,
+    updated_existing: 0,
+  };
   let rejected = 0,
     completed = 0;
   const pagination: {
@@ -41,6 +47,9 @@ export async function syncSearch(
       if (now() >= deadline) throw new ProviderError("timeout");
       const result = await provider.search(query);
       await repo.accept(run, result.jobs);
+      const pageOutcomes = await repo.processPending(run);
+      for (const state of Object.keys(outcomes) as (keyof typeof outcomes)[])
+        outcomes[state] += pageOutcomes[state];
       rejected += result.rejectedCount;
       completed++;
       pagination.push({ query: index + 1, ...result.pagination });
@@ -71,7 +80,7 @@ export async function syncSearch(
   });
   return {
     ok: true,
-    message: `Received ${count} intake records from ${completed} queries.${rejected ? ` Skipped ${rejected} malformed records.` : ""} ${pagination.some((p) => p.nextPage) ? "More pages are available; choose the next page to continue." : "No further pages were reported."}`,
+    message: `Processed ${count} observations from ${completed} queries: ${outcomes.new} new, ${outcomes.exact_duplicate} exact duplicates, ${outcomes.updated_existing} updates, ${outcomes.likely_duplicate} likely duplicates kept separately.${rejected ? ` Skipped ${rejected} malformed records.` : ""} ${pagination.some((p) => p.nextPage) ? "More pages are available; choose the next page to continue." : "No further pages were reported."}`,
   };
 }
 export async function importManualJob(
@@ -92,6 +101,7 @@ export async function importManualJob(
   const run = await repo.start(provider.identifier, null);
   try {
     await repo.accept(run, [dto]);
+    await repo.processPending(run);
   } catch {
     await repo.finish(run, {
       status: "failed",
@@ -112,5 +122,9 @@ export async function importManualJob(
     message: null,
     pagination: [],
   });
-  return { ok: true, message: "Manual job received for normalization." };
+  return {
+    ok: true,
+    message:
+      "Manual job processed. Check the saved jobs list for its duplicate status.",
+  };
 }

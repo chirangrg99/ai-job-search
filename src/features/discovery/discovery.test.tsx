@@ -3,11 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 const m = vi.hoisted(() => ({
   sync: vi.fn(),
+  process: vi.fn(),
   manual: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("@/app/(workspace)/jobs/actions", () => ({
   syncJobs: m.sync,
+  processPendingJobs: m.process,
   addManualJob: m.manual,
 }));
 vi.mock("next/navigation", () => ({
@@ -22,6 +24,7 @@ const data: DiscoveryOverview = {
   runs: [],
   items: [],
   total: 0,
+  pending: 0,
 };
 beforeEach(() => vi.resetAllMocks());
 it("shows setup-needed and retains manual entry when credentials are missing", () => {
@@ -76,4 +79,16 @@ it("confirms discarding a manual draft", async () => {
   expect(close).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: "Discard changes" }));
   expect(close).toHaveBeenCalledOnce();
+});
+
+it("processes legacy pending records explicitly", async () => {
+  m.process.mockResolvedValue({ ok: true, message: "Processed 2 jobs" });
+  render(<DiscoveryWorkspace data={{ ...data, pending: 2 }} configured />);
+  await userEvent.click(
+    screen.getByRole("button", { name: "Process pending jobs" }),
+  );
+  expect(m.process).toHaveBeenCalledOnce();
+  expect(await screen.findByRole("status")).toHaveTextContent(
+    "Processed 2 jobs",
+  );
 });

@@ -658,9 +658,12 @@ export type Database = {
       };
       job_discoveries: {
         Row: {
+          deduplication_state: string | null;
           dto: Json;
           external_id: string;
           id: string;
+          job_id: string | null;
+          processed_at: string | null;
           profile_id: string;
           provider: string;
           received_at: string;
@@ -668,9 +671,12 @@ export type Database = {
           status: string;
         };
         Insert: {
+          deduplication_state?: string | null;
           dto: Json;
           external_id: string;
           id?: string;
+          job_id?: string | null;
+          processed_at?: string | null;
           profile_id: string;
           provider: string;
           received_at?: string;
@@ -678,9 +684,12 @@ export type Database = {
           status?: string;
         };
         Update: {
+          deduplication_state?: string | null;
           dto?: Json;
           external_id?: string;
           id?: string;
+          job_id?: string | null;
+          processed_at?: string | null;
           profile_id?: string;
           provider?: string;
           received_at?: string;
@@ -688,6 +697,13 @@ export type Database = {
           status?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "discovery_job_owner_fk";
+            columns: ["job_id", "profile_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id", "owner_profile_id"];
+          },
           {
             foreignKeyName: "job_discoveries_profile_id_fkey";
             columns: ["profile_id"];
@@ -771,6 +787,42 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "job_preferences_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      job_provider_identities: {
+        Row: {
+          external_id: string;
+          job_id: string;
+          profile_id: string;
+          provider: string;
+        };
+        Insert: {
+          external_id: string;
+          job_id: string;
+          profile_id: string;
+          provider: string;
+        };
+        Update: {
+          external_id?: string;
+          job_id?: string;
+          profile_id?: string;
+          provider?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_provider_identities_job_id_profile_id_fkey";
+            columns: ["job_id", "profile_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id", "owner_profile_id"];
+          },
+          {
+            foreignKeyName: "job_provider_identities_profile_id_fkey";
             columns: ["profile_id"];
             isOneToOne: false;
             referencedRelation: "candidate_profiles";
@@ -899,16 +951,21 @@ export type Database = {
           company: string | null;
           country: string | null;
           created_at: string;
+          deduplication_state: string;
           description: string | null;
           discovered_at: string;
           employment_type: string | null;
           external_job_id: string | null;
           fingerprint: string | null;
           id: string;
+          last_seen_at: string;
+          likely_duplicate_of: string | null;
           location: string | null;
           normalized_company: string | null;
+          normalized_data: Json | null;
           normalized_location: string | null;
           normalized_title: string | null;
+          owner_profile_id: string | null;
           posted_at: string | null;
           provider: string;
           remote_type: string | null;
@@ -925,16 +982,21 @@ export type Database = {
           company?: string | null;
           country?: string | null;
           created_at?: string;
+          deduplication_state?: string;
           description?: string | null;
           discovered_at?: string;
           employment_type?: string | null;
           external_job_id?: string | null;
           fingerprint?: string | null;
           id?: string;
+          last_seen_at?: string;
+          likely_duplicate_of?: string | null;
           location?: string | null;
           normalized_company?: string | null;
+          normalized_data?: Json | null;
           normalized_location?: string | null;
           normalized_title?: string | null;
+          owner_profile_id?: string | null;
           posted_at?: string | null;
           provider: string;
           remote_type?: string | null;
@@ -951,16 +1013,21 @@ export type Database = {
           company?: string | null;
           country?: string | null;
           created_at?: string;
+          deduplication_state?: string;
           description?: string | null;
           discovered_at?: string;
           employment_type?: string | null;
           external_job_id?: string | null;
           fingerprint?: string | null;
           id?: string;
+          last_seen_at?: string;
+          likely_duplicate_of?: string | null;
           location?: string | null;
           normalized_company?: string | null;
+          normalized_data?: Json | null;
           normalized_location?: string | null;
           normalized_title?: string | null;
+          owner_profile_id?: string | null;
           posted_at?: string | null;
           provider?: string;
           remote_type?: string | null;
@@ -971,7 +1038,22 @@ export type Database = {
           title?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "jobs_likely_owner_fk";
+            columns: ["likely_duplicate_of", "owner_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id", "owner_profile_id"];
+          },
+          {
+            foreignKeyName: "jobs_owner_profile_id_fkey";
+            columns: ["owner_profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       projects: {
         Row: {
@@ -1088,6 +1170,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      normalize_discovery: {
+        Args: { discovery_id: string; normalized: Json };
+        Returns: Json;
+      };
       reserve_adzuna_request: {
         Args: { delay_seconds?: number };
         Returns: boolean;

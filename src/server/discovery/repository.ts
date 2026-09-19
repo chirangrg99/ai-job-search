@@ -1,4 +1,9 @@
 import "server-only";
+import {
+  normalizeJob,
+  deduplicationStates,
+} from "@/server/normalization/normalize";
+import { z } from "zod";
 import type { DiscoveryOverview } from "@/features/discovery/model";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/database";
@@ -100,12 +105,48 @@ export function discoveryRepository(
         external_id: dto.externalId,
         dto,
       })),
-      { onConflict: "run_id,provider,external_id" },
+      { onConflict: "run_id,provider,external_id", ignoreDuplicates: true },
     );
     if (error)
       throw new Error(
         "Could not store discoveries. Previously received records are preserved.",
       );
+  }
+  async function processPending(runId?: string) {
+    const profile = await owner();
+    let query = client
+      .from("job_discoveries")
+      .select("id,dto")
+      .eq("profile_id", profile)
+      .eq("status", "pending_normalization")
+      .order("received_at")
+      .order("id")
+      .limit(100);
+    if (runId) query = query.eq("run_id", runId);
+    const { data, error } = await query;
+    if (error) throw new Error("Could not load pending discoveries.");
+    const counts = {
+      new: 0,
+      exact_duplicate: 0,
+      likely_duplicate: 0,
+      updated_existing: 0,
+    };
+    for (const row of data ?? []) {
+      const normalized = normalizeJob(discoveredJobSchema.parse(row.dto));
+      const result = await client.rpc("normalize_discovery", {
+        discovery_id: row.id,
+        normalized,
+      });
+      if (result.error)
+        throw new Error(
+          "Could not normalize discoveries. Completed records are preserved; retry processing pending jobs.",
+        );
+      const outcome = z
+        .object({ jobId: z.uuid(), state: z.enum(deduplicationStates) })
+        .parse(result.data);
+      counts[outcome.state]++;
+    }
+    return counts;
   }
   async function finish(
     runId: string,
@@ -159,7 +200,7 @@ export function discoveryRepository(
   }
   async function overview(): Promise<DiscoveryOverview> {
     const profile = await owner();
-    const [searches, runs, items, sources] = await Promise.all([
+    const [searches, runs, items, sources, pending] = await Promise.all([
       client
         .from("job_preferences")
         .select("id,name")
@@ -175,30 +216,50 @@ export function discoveryRepository(
         .order("started_at", { ascending: false })
         .limit(10),
       client
-        .from("job_discoveries")
-        .select("id,dto,received_at", { count: "exact" })
-        .eq("profile_id", profile)
-        .order("received_at", { ascending: false })
+        .from("jobs")
+        .select(
+          "id,normalized_data,discovered_at,deduplication_state,likely_duplicate_of",
+          { count: "exact" },
+        )
+        .eq("owner_profile_id", profile)
+        .order("discovered_at", { ascending: false })
         .limit(50),
       client
         .from("job_sources")
         .select("provider,last_synced_at")
         .eq("profile_id", profile),
+      client
+        .from("job_discoveries")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", profile)
+        .eq("status", "pending_normalization"),
     ]);
-    if ([searches, runs, items, sources].some((x) => x.error))
+    if ([searches, runs, items, sources, pending].some((x) => x.error))
       throw new Error("Could not load job discovery.");
     return {
       searches: searches.data ?? [],
       runs: runs.data ?? [],
       sources: sources.data ?? [],
       total: items.count ?? 0,
+      pending: pending.count ?? 0,
       items: (items.data ?? []).map((row) => ({
         id: row.id,
-        receivedAt: row.received_at,
-        job: discoveredJobSchema.parse(row.dto),
+        receivedAt: row.discovered_at,
+        outcome: row.deduplication_state,
+        likelyDuplicateOf: row.likely_duplicate_of,
+        job: z.object({ raw: discoveredJobSchema }).parse(row.normalized_data)
+          .raw,
       })),
     };
   }
-  return { owner, enabledSearch, start, accept, finish, overview };
+  return {
+    owner,
+    enabledSearch,
+    start,
+    accept,
+    processPending,
+    finish,
+    overview,
+  };
 }
 export type DiscoveryRepository = ReturnType<typeof discoveryRepository>;

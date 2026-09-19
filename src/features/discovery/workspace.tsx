@@ -6,7 +6,7 @@ import { Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/layout/page-header";
-import { syncJobs } from "@/app/(workspace)/jobs/actions";
+import { syncJobs, processPendingJobs } from "@/app/(workspace)/jobs/actions";
 import { ManualJobEditor } from "./manual-editor";
 import type { DiscoveryOverview } from "./model";
 
@@ -49,6 +49,21 @@ export function DiscoveryWorkspace({
       setError(
         "Connection interrupted. Reload to check the sync outcome before retrying.",
       );
+    } finally {
+      setPending(false);
+    }
+  }
+  async function processPending() {
+    setPending(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await processPendingJobs();
+      if (result.ok) setNotice(result.message);
+      else setError(result.error);
+      router.refresh();
+    } catch {
+      setError("Processing interrupted. Reload and retry pending jobs.");
     } finally {
       setPending(false);
     }
@@ -168,7 +183,7 @@ export function DiscoveryWorkspace({
               aria-hidden="true"
               className={pending ? "animate-spin" : ""}
             />
-            {pending ? "Syncing…" : "Sync jobs"}
+            {pending ? "Working…" : "Sync jobs"}
           </Button>
         </form>
         <p className="text-xs text-text-secondary">
@@ -191,7 +206,7 @@ export function DiscoveryWorkspace({
         }
       >
         {pending
-          ? "Fetching jobs. This may take a few minutes; received pages are preserved if interrupted."
+          ? "Processing jobs. This may take a few minutes; completed work is preserved if interrupted."
           : notice}
       </p>
       {error && (
@@ -204,85 +219,123 @@ export function DiscoveryWorkspace({
       )}
       <section className="space-y-4 rounded-lg border bg-surface p-5 sm:p-6">
         <div className="flex flex-wrap justify-between gap-3">
-          <h2 className="text-section font-semibold">Received jobs</h2>
+          <h2 className="text-section font-semibold">Saved jobs</h2>
           <span className="text-sm text-text-secondary">
-            {data.total} intake records · showing latest {data.items.length}
+            {data.total} jobs · showing latest {data.items.length}
           </span>
         </div>
         <p className="text-sm text-text-secondary">
-          Awaiting normalization. Repeated syncs may contain the same posting;
-          deduplication and AI analysis have not run.
+          Exact duplicates reuse the existing job. Likely duplicates remain
+          separate for review. No AI analysis has run.
         </p>
+        {data.pending > 0 && (
+          <div className="rounded-md bg-warning-soft p-3 text-sm">
+            <p>{data.pending} discoveries await processing.</p>
+            <Button
+              variant="outline"
+              disabled={pending}
+              onClick={() => void processPending()}
+            >
+              Process pending jobs
+            </Button>
+          </div>
+        )}
         {!data.items.length ? (
           <p className="rounded-md bg-surface-subtle p-5 text-sm">
             No jobs received yet. Sync an enabled search or add a job manually.
           </p>
         ) : (
           <div className="divide-y">
-            {data.items.map(({ id, job, receivedAt }) => (
-              <article key={id} className="space-y-3 py-5">
-                <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr]">
-                  <div className="min-w-0">
-                    <h3 className="font-semibold [overflow-wrap:anywhere]">
-                      {job.title}
-                    </h3>
-                    <p className="text-sm [overflow-wrap:anywhere] text-text-secondary">
-                      {job.company ?? "Company not provided"}
+            {data.items.map(
+              ({ id, job, receivedAt, outcome, likelyDuplicateOf }) => (
+                <article id={`job-${id}`} key={id} className="space-y-3 py-5">
+                  <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr]">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold [overflow-wrap:anywhere]">
+                        {job.title}
+                      </h3>
+                      <p className="text-sm [overflow-wrap:anywhere] text-text-secondary">
+                        {job.company ?? "Company not provided"}
+                      </p>
+                    </div>
+                    <p className="text-sm [overflow-wrap:anywhere]">
+                      {job.location ?? "Location not provided"}
                     </p>
+                    <div className="text-sm">
+                      <p>
+                        {job.provider === "adzuna"
+                          ? "Adzuna Canada"
+                          : "Manual entry"}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {time(receivedAt)}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm [overflow-wrap:anywhere]">
-                    {job.location ?? "Location not provided"}
+                  <p className="text-sm font-medium">
+                    {outcome === "likely_duplicate"
+                      ? "Likely duplicate · kept separately"
+                      : outcome === "updated_existing"
+                        ? "Updated existing job"
+                        : "Saved job"}
                   </p>
-                  <div className="text-sm">
-                    <p>
-                      {job.provider === "adzuna"
-                        ? "Adzuna Canada"
-                        : "Manual entry"}
+                  {likelyDuplicateOf && (
+                    <p className="text-sm text-text-secondary">
+                      {data.items.some(
+                        (item) => item.id === likelyDuplicateOf,
+                      ) ? (
+                        <a
+                          className="text-primary underline"
+                          href={`#job-${likelyDuplicateOf}`}
+                        >
+                          View similar saved job
+                        </a>
+                      ) : (
+                        "A similar saved job was found."
+                      )}{" "}
+                      Both records have been kept.
                     </p>
-                    <p className="text-xs text-text-secondary">
-                      {time(receivedAt)}
+                  )}
+                  <details>
+                    <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                      View received description
+                    </summary>
+                    <p className="mb-2 text-xs text-text-secondary">
+                      {job.descriptionComplete
+                        ? "Full description supplied"
+                        : "Description may be a snippet"}{" "}
+                      · Source information, not candidate facts.
                     </p>
-                  </div>
-                </div>
-                <details>
-                  <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
-                    View received description
-                  </summary>
-                  <p className="mb-2 text-xs text-text-secondary">
-                    {job.descriptionComplete
-                      ? "Full description supplied"
-                      : "Description may be a snippet"}{" "}
-                    · Source information, not candidate facts.
-                  </p>
-                  <p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
-                    {job.description ?? "Not provided"}
-                  </p>
-                </details>
-                {job.applicationUrl && (
-                  <a
-                    href={job.applicationUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block min-h-11 py-3 text-sm text-primary underline"
-                  >
-                    Open original posting
-                  </a>
-                )}
-                {job.provider === "adzuna" && (
-                  <p className="text-xs text-text-secondary">
-                    Source:{" "}
+                    <p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
+                      {job.description ?? "Not provided"}
+                    </p>
+                  </details>
+                  {job.applicationUrl && (
                     <a
-                      href="https://www.adzuna.ca"
+                      href={job.applicationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary underline"
+                      className="inline-block min-h-11 py-3 text-sm text-primary underline"
                     >
-                      The Adzuna API
+                      Open original posting
                     </a>
-                  </p>
-                )}
-              </article>
-            ))}
+                  )}
+                  {job.provider === "adzuna" && (
+                    <p className="text-xs text-text-secondary">
+                      Source:{" "}
+                      <a
+                        href="https://www.adzuna.ca"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline"
+                      >
+                        The Adzuna API
+                      </a>
+                    </p>
+                  )}
+                </article>
+              ),
+            )}
           </div>
         )}
       </section>

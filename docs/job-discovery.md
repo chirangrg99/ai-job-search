@@ -1,4 +1,4 @@
-# Job discovery — Phase 5
+# Job discovery — Phase 5 architecture, updated for Phase 6
 
 ## Use
 
@@ -10,7 +10,7 @@ Configure `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` only in the server environment. N
 
 `JobProvider` defines identifier, configuration validation, search, mapping and pagination. `AdzunaJobProvider` owns its response schemas and HTTP details. `ManualJobProvider` maps explicit user input and assigns an internal external ID; its search returns an empty page because it has no upstream service.
 
-Both produce the validated `DiscoveredJob` DTO. Unknown fields are stripped. `DiscoveryRepository.accept()` is the normalization pipeline intake boundary: it saves DTOs in `job_discoveries` with `pending_normalization`. It never writes unvalidated provider payloads into UI models or inserts normalized `jobs` records. Repeated provider IDs within one run coalesce; cross-run deduplication is deliberately deferred.
+Both produce the validated `DiscoveredJob` DTO. Unknown fields are stripped. `DiscoveryRepository.accept()` is the normalization pipeline intake boundary: it saves DTOs in `job_discoveries` with `pending_normalization`, then the Phase 6 normalizer resolves them into jobs. It never writes unvalidated provider payloads into UI models. Repeated provider IDs within one run coalesce; cross-run job deduplication uses the rules in `docs/job-normalization.md`.
 
 Server actions authenticate independently. Repositories derive the candidate profile from the server-authenticated user; ownership is enforced again by RLS and composite foreign keys. The browser supplies only search IDs and controls, never trusted user/profile IDs.
 
@@ -36,7 +36,7 @@ Runs stop starting further queries after three minutes. One active run per profi
 
 `job_sync_runs` and `job_discoveries` are owner-scoped RLS tables. The private quota tables deny direct client access. A narrowly scoped private security-definer function checks the authenticated profile, uses a fixed search path and an advisory transaction lock. A public security-invoker wrapper exposes only the bounded quota operation. Credentials are never stored in these tables.
 
-The Jobs screen shows the latest 50 received records and 10 runs. It labels records as awaiting normalization and does not invent fit scores or analysis. Link fields reject unsupported protocols, embedded credentials and credential query parameters; descriptions render as text.
+The Jobs screen shows the latest 50 stored jobs and 10 runs. Pending observations can be processed explicitly. Likely duplicates remain separate; the UI does not invent fit scores or analysis. Link fields reject unsupported protocols, embedded credentials and credential query parameters; descriptions render as text.
 
 ## Verification
 

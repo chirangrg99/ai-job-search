@@ -37,3 +37,22 @@ export async function addManualJob(input: unknown): Promise<DiscoveryResult> {
     revalidatePath("/jobs");
   }
 }
+
+export async function processPendingJobs(): Promise<DiscoveryResult> {
+  const { client, user } = await requireUser();
+  try {
+    const counts = await discoveryRepository(client, user.id).processPending();
+    return {
+      ok: true,
+      message: `Processed up to 100 pending jobs: ${counts.new} new, ${counts.exact_duplicate} exact duplicates, ${counts.updated_existing} updates, ${counts.likely_duplicate} likely duplicates kept separately.`,
+    };
+  } catch {
+    return {
+      ok: false,
+      error:
+        "Processing could not finish. Completed jobs are preserved. Retry processing pending jobs.",
+    };
+  } finally {
+    revalidatePath("/jobs");
+  }
+}

@@ -19,12 +19,17 @@ vi.mock("@/server/discovery/service", () => ({
   importManualJob: m.manual,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: m.revalidate }));
-import { syncJobs, addManualJob } from "@/app/(workspace)/jobs/actions";
+import {
+  syncJobs,
+  addManualJob,
+  processPendingJobs,
+} from "@/app/(workspace)/jobs/actions";
 beforeEach(() => vi.resetAllMocks());
 it("guards sync and manual import before accessing any data", async () => {
   m.guard.mockRejectedValue(new Error("login"));
   await expect(syncJobs({})).rejects.toThrow("login");
   await expect(addManualJob({})).rejects.toThrow("login");
+  await expect(processPendingJobs()).rejects.toThrow("login");
   expect(m.repo).not.toHaveBeenCalled();
   expect(m.provider).not.toHaveBeenCalled();
 });

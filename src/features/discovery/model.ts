@@ -17,5 +17,12 @@ export interface DiscoveryOverview {
     | "pagination"
   >[];
   total: number;
-  items: { id: string; receivedAt: string; job: DiscoveredJob }[];
+  pending: number;
+  items: {
+    id: string;
+    receivedAt: string;
+    job: DiscoveredJob;
+    outcome: string;
+    likelyDuplicateOf: string | null;
+  }[];
 }

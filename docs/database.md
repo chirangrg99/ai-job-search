@@ -88,3 +88,7 @@ Standalone Playwright remains subject to the host's Chromium launch restriction 
 ## Phase 5 discovery additions
 
 `job_sync_runs` records owner-scoped attempts and `job_discoveries` stores validated DTOs awaiting normalization. Composite foreign keys prevent cross-owner linkage. A partial unique index permits one running sync per profile/provider. Private quota/cooldown tables have explicit denial policies; a narrowly scoped authenticated RPC reserves requests atomically. See `docs/job-discovery.md` and `docs/phase-5-report.md` for both deployed migrations and verification. Normalized `jobs` remains untouched by discovery.
+
+## Phase 6 normalization
+
+`20260919033953_job_normalization.sql` makes newly discovered jobs candidate-owned, retaining read-only legacy catalog rows with null ownership. Provider identities and discovery results use composite ownership relationships. The authenticated normalization RPC runs with invoker privileges and a candidate-scoped advisory transaction lock. See `docs/job-normalization.md` for identity/update rules and `docs/phase-6-report.md` for checks.

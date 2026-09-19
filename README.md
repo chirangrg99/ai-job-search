@@ -1,6 +1,6 @@
 # AI Job Application Assistant
 
-Phase 5: authenticated career workspace, verified master profile, saved searches, and manual job discovery through Adzuna Canada or structured entry. Received jobs are stored at the normalization boundary; AI analysis is not implemented.
+Phase 6: authenticated career workspace, verified master profile, saved searches, and manual job discovery through Adzuna Canada or structured entry. Discoveries are normalized and deduplicated into candidate-owned jobs; AI analysis is not implemented.
 
 ## Run locally
 
@@ -57,6 +57,8 @@ Direct dependencies are pinned. ESLint remains on 9.39.5 for compatibility with 
 
 ## Phase boundary
 
-Phase 5 is implemented. Create and enable a saved search, then select it on Jobs and use **Sync jobs**. Adzuna requires server-only `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; manual entry needs no provider credentials.
+Phase 6 is implemented. Create and enable a saved search, then select it on Jobs and use **Sync jobs**. Adzuna requires server-only `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; manual entry needs no provider credentials.
 
-No normalization/deduplication processing, AI calls, application preparation, cron, automatic submissions or Storage integration. See `docs/phase-5-report.md` for verification and limitations. Later phases require explicit authorization.
+No AI calls, application preparation, cron, automatic submissions or Storage integration. See `docs/phase-6-report.md` for verification and limitations. Later phases require explicit authorization.
+
+Normalization rules, explicit duplicate states and pending-intake processing are documented in `docs/job-normalization.md`.

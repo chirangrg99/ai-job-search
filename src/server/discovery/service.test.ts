@@ -35,6 +35,12 @@ function fixture() {
     }),
     start: vi.fn().mockResolvedValue("run"),
     accept: vi.fn(),
+    processPending: vi.fn().mockResolvedValue({
+      new: 1,
+      exact_duplicate: 0,
+      likely_duplicate: 0,
+      updated_existing: 0,
+    }),
     finish: vi.fn().mockResolvedValue(2),
     overview: vi.fn(),
   };
@@ -229,4 +235,23 @@ it("preserves provider-neutral criteria for other adapters and job families", ()
     salary: { minimum: 25, currency: "CAD", period: "hour" },
   });
   expect(new ProviderError("authentication").message).not.toContain("Adzuna");
+});
+
+it("processes each received page before declaring it complete", async () => {
+  const { repo, provider } = fixture();
+  await syncSearch(repo, provider, input);
+  expect(repo.processPending).toHaveBeenCalledWith("run");
+  expect(repo.processPending).toHaveBeenCalledTimes(2);
+});
+it("preserves intake and reports failure if normalization is interrupted", async () => {
+  const { repo, provider } = fixture();
+  repo.processPending.mockRejectedValue(new Error("database detail"));
+  const result = await syncSearch(repo, provider, input);
+  expect(result.ok).toBe(false);
+  expect(repo.accept).toHaveBeenCalledOnce();
+  expect(repo.finish).toHaveBeenCalledWith(
+    "run",
+    expect.objectContaining({ status: "failed", code: "persistence" }),
+  );
+  expect(JSON.stringify(result)).not.toContain("database detail");
 });
