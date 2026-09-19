@@ -1,6 +1,6 @@
 # Job-description parser
 
-Open a saved job from Jobs, then select **Parse requirements**. The server sends only its description to OpenAI; no candidate profile is included. Results remain AI drafts with expandable verbatim evidence. A partial-source warning stays visible for provider snippets.
+Open a saved job from Jobs, then select **Parse requirements**. The server sends a snapshot of all saved posting fields and available original posting text to OpenAI; no candidate profile is included. Results remain AI drafts with expandable verbatim evidence. A partial-source warning stays visible for provider snippets.
 
 ## Boundaries and validation
 
@@ -12,11 +12,11 @@ Zod validates responses and cached output. PostgreSQL independently rejects malf
 
 ## Cache and concurrency
 
-Cache identity combines owner, internal job, SHA-256 of exact source plus completeness/schema version, requested model, prompt version and schema version. Requested and actual response models are stored separately with source snapshot and analyzed timestamp. Changed descriptions do not reuse old extractions; original rows remain auditable.
+Cache identity combines owner, internal job, SHA-256 of exact combined source plus completeness/schema version, requested model, prompt version and schema version. Requested and actual response models are stored separately with source snapshot and analyzed timestamp. Changed descriptions do not reuse old extractions; original rows remain auditable.
 
 A transactional claim function serializes reservations. Active claims have a two-minute lease. Completion requires the matching lease token. Successful cache hits make no AI request. Failures require explicit retry, with a 30-second cooldown and at most three attempts per version; interrupted claims require lease expiry. The SDK has no automatic retries and a 60-second timeout. An uncertain network failure may still incur provider cost; reload before retrying.
 
-Inputs are limited to 30,000 characters without truncation; output is limited to 8,000 tokens and 60 items per requirement group. Refusal, incomplete output and invalid evidence are rejected. Source instructions are treated as untrusted data; the model has no tools. Errors are sanitized and neither credentials nor raw SDK failures are logged.
+Combined inputs are limited to 80,000 characters without truncation; output is limited to 8,000 tokens and 60 items per requirement group. Refusal, incomplete output and invalid evidence are rejected. Source instructions are treated as untrusted data; the model has no tools. Errors are sanitized and neither credentials nor raw SDK failures are logged.
 
 ## Configuration and testing
 
@@ -35,3 +35,14 @@ The original approved live retry succeeded but exposed an identity classificatio
 ## Duty and schedule classification (prompt v4)
 
 Development opportunities and career benefits do not become job duties or entry skills. Responsibilities require concrete work, with the duty clause separated from surrounding benefits. Bare Hybrid/Remote/On-site labels are not schedules; schedules require explicit hours, shifts, days, on-call duties or attendance cadence. The schema also documents this distinction. V4 was live-tested against the observed Jeppesen ForeFlight snippet: supported identity remained intact and both misclassified arrays were empty. This single live example does not establish universal semantic accuracy; source review remains necessary.
+
+
+## Full posting source (prompt v5 / schema 2)
+
+The parser input now includes provider, external ID, title, employer, location, country, employment type, remote arrangement, posted date, salary bounds/currency/period/estimated flag, provider description and original posting text. It excludes user IDs, candidate information, provider credentials and arbitrary internal metadata. The server-side `job_parse_source` function constructs the owner-scoped snapshot; claim validation compares the complete snapshot, so changed metadata or imported text invalidates the cache. Evidence is quoted against that same serialized snapshot.
+
+In Job Detail, use **Read original posting** to retrieve public HTTPS HTML, or **Paste full posting text** and save it. Importing does not call OpenAI. Review **View complete parser input**, then parse. The reader retains all fields from a single JSON-LD JobPosting when available, otherwise the main/article text. It excludes scripts/navigation and rejects multiple structured postings, inaccessible/blocked pages, unsupported content and oversized responses. It does not execute JavaScript, sign in, crawl links or bypass access restrictions. Retrieved text may still be incomplete; review remains necessary. Saved provider values and imported source remain separate. Conflicts are preserved in ambiguities and estimated pay must not become employer-stated salary.
+
+Reads use validated public DNS addresses pinned to the HTTPS connection, revalidate each redirect, allow at most three redirects, use 10-second request timeouts, and limit responses to 2 MB and extracted text to 50,000 characters. Only an explicitly saved posting URL is requested. A paste fallback covers sites that cannot be read. Nothing is silently truncated.
+
+Migration `20260919185806_full_posting_parser_source.sql` adds posting text/origin/timestamp, the source RPC and snapshot-aware claims. Existing records and previous parser versions are retained. Browser verification of this UI was unavailable in the final session; unit/integration tests and production build passed. The current preview runs at port 3001 because the existing port-3000 process could not be stopped from this session.

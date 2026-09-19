@@ -53,3 +53,39 @@ it("sanitizes errors", async () => {
   expect(JSON.stringify(r)).not.toContain("secret");
   expect(m.refresh).toHaveBeenCalledWith(`/jobs/${jobId}`);
 });
+
+it("guards posting imports before accessing the repository", async () => {
+  const { savePostingSource } =
+    await import("@/app/(workspace)/jobs/[jobId]/actions");
+  m.guard.mockRejectedValue(new Error("login"));
+  await expect(savePostingSource({ jobId, mode: "fetch" })).rejects.toThrow(
+    "login",
+  );
+  expect(m.repo).not.toHaveBeenCalled();
+});
+it("refuses to save posting text without an owned job", async () => {
+  const { savePostingSource } =
+    await import("@/app/(workspace)/jobs/[jobId]/actions");
+  const save = vi.fn();
+  m.repo.mockReturnValue({
+    job: vi.fn().mockResolvedValue(null),
+    savePosting: save,
+  });
+  expect(
+    (await savePostingSource({ jobId, mode: "paste", text: "Full text" })).ok,
+  ).toBe(false);
+  expect(save).not.toHaveBeenCalled();
+});
+it("saves full pasted text through authenticated ownership", async () => {
+  const { savePostingSource } =
+    await import("@/app/(workspace)/jobs/[jobId]/actions");
+  const save = vi.fn();
+  m.repo.mockReturnValue({
+    job: vi.fn().mockResolvedValue({ id: jobId }),
+    savePosting: save,
+  });
+  expect(
+    (await savePostingSource({ jobId, mode: "paste", text: "Full text" })).ok,
+  ).toBe(true);
+  expect(save).toHaveBeenCalledWith(jobId, "Full text", "pasted");
+});

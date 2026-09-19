@@ -59,6 +59,6 @@ Direct dependencies are pinned. ESLint remains on 9.39.5 for compatibility with 
 
 Phase 7 is implemented. Create and enable a saved search, then select it on Jobs and use **Sync jobs**. Adzuna requires server-only `ADZUNA_APP_ID` and `ADZUNA_APP_KEY`; manual entry needs no provider credentials.
 
-Open a saved job to parse its description with server-only OpenAI Structured Outputs. Configure `OPENAI_API_KEY` to enable parsing. See `docs/job-parser.md` and `docs/phase-7-report.md`. Candidate matching, application preparation, cron, automatic submissions and Storage integration remain outside this phase. Later phases require explicit authorization.
+Open a saved job, read or paste its original posting text, then parse all saved posting fields with server-only OpenAI Structured Outputs. Configure `OPENAI_API_KEY` to enable parsing. See `docs/job-parser.md` and `docs/phase-7-report.md`. Candidate matching, application preparation, cron, automatic submissions and Storage integration remain outside this phase. Later phases require explicit authorization.
 
 Normalization rules, explicit duplicate states and pending-intake processing are documented in `docs/job-normalization.md`.

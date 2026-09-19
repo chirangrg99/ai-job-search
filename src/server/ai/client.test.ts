@@ -52,7 +52,7 @@ it("requests strict structured output, bounds spending and sends only source tex
   expect(body.text.format.schema.additionalProperties).toBe(false);
   expect(body.input).toHaveLength(1);
   expect(JSON.parse(body.input[0].content)).toEqual({
-    description: frontendDescription,
+    postingSource: frontendDescription,
   });
   expect(body.tools).toBeUndefined();
 });

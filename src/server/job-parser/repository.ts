@@ -32,7 +32,7 @@ export function jobParserRepository(
     const { data, error } = await client
       .from("jobs")
       .select(
-        "id,owner_profile_id,title,company,location,description,application_url,normalized_data",
+        "id,owner_profile_id,title,company,location,description,application_url,normalized_data,posting_text,posting_text_origin",
       )
       .eq("id", id)
       .eq("owner_profile_id", await owner())
@@ -42,7 +42,13 @@ export function jobParserRepository(
     const metadata = z
       .object({ raw: z.object({ descriptionComplete: z.boolean() }) })
       .safeParse(data.normalized_data);
+    const snapshot = await client.rpc("job_parse_source", { target_job: id });
+    if (snapshot.error || !snapshot.data)
+      throw new Error("Could not load posting source.");
     return {
+      source: snapshot.data,
+      postingText: data.posting_text,
+      postingOrigin: data.posting_text_origin,
       id: data.id,
       profileId: data.owner_profile_id!,
       title: data.title,
@@ -145,6 +151,24 @@ export function jobParserRepository(
       .eq("status", "processing");
     if (error) throw new Error("Could not record parser failure.");
   }
-  return { job, current, claim, complete, fail };
+  async function savePosting(
+    id: string,
+    text: string,
+    origin: "pasted" | "public_page",
+  ) {
+    const { data, error } = await client
+      .from("jobs")
+      .update({
+        posting_text: text,
+        posting_text_origin: origin,
+        posting_text_saved_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("owner_profile_id", await owner())
+      .select("id")
+      .maybeSingle();
+    if (error || !data) throw new Error("Could not save posting text.");
+  }
+  return { job, current, claim, complete, fail, savePosting };
 }
 export type JobParserRepository = ReturnType<typeof jobParserRepository>;

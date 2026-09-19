@@ -52,7 +52,12 @@ export class OpenAIClient implements AIClient {
         store: false,
         max_output_tokens: 8000,
         instructions: PARSER_INSTRUCTIONS,
-        input: [{ role: "user", content: JSON.stringify({ description }) }],
+        input: [
+          {
+            role: "user",
+            content: JSON.stringify({ postingSource: description }),
+          },
+        ],
         text: { format: zodTextFormat(parsedJobSchema, "job_requirements") },
       });
       if (response.status !== "completed") throw new AIError("incomplete");

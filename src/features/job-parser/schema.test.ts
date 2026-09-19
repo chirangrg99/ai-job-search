@@ -157,7 +157,7 @@ it("preserves alternatives and ambiguity as exact wording", () => {
     validateParsedJob(p, frontendDescription).educationRequirements[0]?.text,
   ).toBe(text);
 });
-it.each(["", "   ", "a".repeat(30001)])("rejects invalid source size", (s) =>
+it.each(["", "   ", "a".repeat(80001)])("rejects invalid source size", (s) =>
   expect(descriptionSchema.safeParse(s).success).toBe(false),
 );
 it("rejects excessive arrays", () =>

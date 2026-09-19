@@ -45,8 +45,8 @@ export function ParseControl({
     <div className="space-y-3 rounded-lg border bg-surface p-5">
       <h2 className="font-semibold">Parse job description</h2>
       <p className="text-sm text-text-secondary">
-        Sends only this job description to OpenAI. Unchanged descriptions reuse
-        their saved result.
+        Sends saved posting fields and available original posting text to
+        OpenAI. Unchanged sources reuse their saved result.
       </p>
       {!configured && status !== "completed" && (
         <p className="text-sm text-warning">
@@ -55,7 +55,7 @@ export function ParseControl({
       )}
       {!canParse && (
         <p className="text-sm text-warning">
-          Provide a description of 1–30,000 characters to parse.
+          Provide a description of 1–80,000 characters to parse.
         </p>
       )}
       {status === "completed" ? (

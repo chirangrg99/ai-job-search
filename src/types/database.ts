@@ -1051,6 +1051,9 @@ export type Database = {
           normalized_title: string | null;
           owner_profile_id: string | null;
           posted_at: string | null;
+          posting_text: string | null;
+          posting_text_origin: string | null;
+          posting_text_saved_at: string | null;
           provider: string;
           remote_type: string | null;
           salary_currency: string | null;
@@ -1082,6 +1085,9 @@ export type Database = {
           normalized_title?: string | null;
           owner_profile_id?: string | null;
           posted_at?: string | null;
+          posting_text?: string | null;
+          posting_text_origin?: string | null;
+          posting_text_saved_at?: string | null;
           provider: string;
           remote_type?: string | null;
           salary_currency?: string | null;
@@ -1113,6 +1119,9 @@ export type Database = {
           normalized_title?: string | null;
           owner_profile_id?: string | null;
           posted_at?: string | null;
+          posting_text?: string | null;
+          posting_text_origin?: string | null;
+          posting_text_saved_at?: string | null;
           provider?: string;
           remote_type?: string | null;
           salary_currency?: string | null;
@@ -1267,6 +1276,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      job_parse_source: { Args: { target_job: string }; Returns: string };
       normalize_discovery: {
         Args: { discovery_id: string; normalized: Json };
         Returns: Json;

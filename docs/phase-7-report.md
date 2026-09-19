@@ -60,3 +60,12 @@ User-authorized live browser tests on the saved Software Developer II posting (J
 The final v4 live request completed and saved: title Software Application Developer, company Jeppesen ForeFlight, location Montreal, Quebec; remaining extracted fields were null/empty, consistent with the limited snippet and the stricter classification rules. The provider's title remains unchanged. This validates the observed example, not all possible job descriptions. Three live requests were made in this audit (v2, v3, v4); no candidate profile was sent.
 
 Changed `prompt.ts`, `schema.ts`, the opt-in AI regression test and these documents. No migration or design change. Lint/typecheck/build passed; 469 offline tests pass. Added a live regression asserting identity and absence of invented duties, skills, employment type and schedule. The three-test opt-in CLI suite was skipped; the actual authenticated browser runs above performed live verification. Old cache versions remain auditable and excluded from v4 lookups. Stop remains at Phase 7.
+
+
+## Expanded posting input follow-up
+
+Implemented source assembly from all saved posting fields plus imported original-page text. Added a public-page reader and paste fallback in Job Detail. Cache identity and evidence now use the same complete snapshot (prompt v5/schema 2). No candidate profile or credentials are included. Unknown/inferred metadata remains labelled; conflicts and salary estimates have explicit prompt rules.
+
+Created posting reader/editor and extraction/transport tests. Changed parser repository/service/adapter/prompt/schema, Job Detail/actions, generated database types, fixtures/tests and dependencies (pinned cheerio/ipaddr.js). Applied migration `20260919185806_full_posting_parser_source.sql`; hosted transactional source/claim test passed and security advisor found only the existing Auth warning. No future phase implemented.
+
+Verification: full offline tests, lint, typecheck, formatting and production build pass. Source tests cover complete fields, changed metadata and ownership; reader tests cover JSON-LD, main text, private DNS, redirects, unsupported pages and size constraints; action tests cover guarded imports and pasted text. No additional live OpenAI call was made. Browser tools were unavailable for interactive verification. Original-page retrieval is best effort, with explicit errors and paste fallback; no claim is made that every site exposes its complete content. Updated preview uses port 3001; port 3000 remains occupied by the older process.

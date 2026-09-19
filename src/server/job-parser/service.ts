@@ -21,12 +21,12 @@ export async function parseJobDescription(
   if (!parsed.success) return { ok: false, error: "Choose a valid saved job." };
   const job = await repo.job(parsed.data.jobId);
   if (!job) return { ok: false, error: "Job not found." };
-  const description = descriptionSchema.safeParse(job.description);
+  const description = descriptionSchema.safeParse(job.source);
   if (!description.success)
     return {
       ok: false,
       error:
-        "Parsing needs a nonempty description of at most 30,000 characters. No text is silently truncated.",
+        "Parsing needs a posting source of at most 80,000 characters. No text is silently truncated.",
     };
   const cached = await repo.current(job.id, description.data, job.complete);
   if (cached?.status === "completed") {

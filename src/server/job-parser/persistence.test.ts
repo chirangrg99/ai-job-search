@@ -137,3 +137,43 @@ it("denies anonymous claims", async () => {
   await db.exec("set local role anon");
   await expect(claim()).rejects.toThrow(/permission denied/);
 });
+
+it("source snapshot includes all job fields and pasted full text", async () => {
+  await db.query(
+    "update public.jobs set company='Example Corp',salary_min=50000,posting_text='Full posting: Rust required.',posting_text_origin='pasted' where id=$1",
+    [job],
+  );
+  const result = await db.query<{ source: string }>(
+    "select public.job_parse_source($1) source",
+    [job],
+  );
+  const source = result.rows[0]!.source;
+  expect(source).toContain("Example Corp");
+  expect(source).toContain("50000");
+  expect(source).toContain("Rust required");
+  expect(source).toContain(frontendDescription.split("\n")[0]);
+  const claim = await db.query<{ r: { state: string } }>(
+    "select public.claim_job_parse($1,$2,$3,true,'model','v5','2') r",
+    [job, "c".repeat(64), source],
+  );
+  expect(claim.rows[0]!.r.state).toBe("claimed");
+  await db.query(
+    "update public.jobs set company='Changed company' where id=$1",
+    [job],
+  );
+  await expect(
+    db.query("select public.claim_job_parse($1,$2,$3,true,'model','v5','2')", [
+      job,
+      "c".repeat(64),
+      source,
+    ]),
+  ).rejects.toThrow("Job changed");
+});
+it("source RPC does not disclose another user's posting", async () => {
+  await db.exec(
+    "select set_config('request.jwt.claim.sub','81000000-0000-4000-8000-000000000002',true)",
+  );
+  await expect(
+    db.query("select public.job_parse_source($1)", [job]),
+  ).rejects.toThrow("Job not found");
+});

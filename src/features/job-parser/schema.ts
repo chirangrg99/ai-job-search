@@ -76,7 +76,7 @@ export type ParsedJob = z.infer<typeof parsedJobSchema>;
 export const descriptionSchema = z
   .string()
   .min(1)
-  .max(30000)
+  .max(80000)
   .refine((s) => s.trim().length > 0, "Provide a job description.");
 const periodPatterns = {
   hour: /\b(hour|hourly|hr)\b/i,

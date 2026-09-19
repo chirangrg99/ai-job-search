@@ -7,6 +7,7 @@ import { getServerEnv } from "@/server/env";
 import { jobParserRepository } from "@/server/job-parser/repository";
 import { DEFAULT_PARSER_MODEL } from "@/server/job-parser/prompt";
 import { PageHeader } from "@/components/layout/page-header";
+import { PostingSourceEditor } from "@/features/job-parser/posting-source-editor";
 import { ParseControl } from "@/features/job-parser/parse-control";
 import { ParsedRequirements } from "@/features/job-parser/requirements";
 import { descriptionSchema } from "@/features/job-parser/schema";
@@ -26,8 +27,8 @@ export default async function Page({
   const repo = jobParserRepository(client, user.id, model),
     job = await repo.job(jobId);
   if (!job) notFound();
-  const current = job.description
-    ? await repo.current(job.id, job.description, job.complete)
+  const current = job.source
+    ? await repo.current(job.id, job.source, job.complete)
     : null;
   const url = safeJobUrl.safeParse(job.applicationUrl);
   return (
@@ -63,16 +64,18 @@ export default async function Page({
               </a>
             )}
             <p className="rounded-md bg-warning-soft p-3 text-sm">
-              {job.complete
-                ? "Full description supplied; extracted classifications still need review."
-                : "Partial source: this description may be a snippet. Missing requirements must not be treated as absent from the full posting."}
+              {job.postingText
+                ? "Original posting text is included. Review the complete parser input for omissions or unrelated content before parsing."
+                : job.complete
+                  ? "Full description supplied; extracted classifications still need review."
+                  : "Partial source: this description may be a snippet. Missing requirements must not be treated as absent from the full posting."}
             </p>
             <details>
               <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
-                View source description
+                View complete parser input
               </summary>
               <p className="text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">
-                {job.description ?? "No description supplied."}
+                {job.source}
               </p>
             </details>
           </section>
@@ -89,12 +92,16 @@ export default async function Page({
           )}
         </div>
         <aside className="min-w-0 space-y-4">
+          <PostingSourceEditor
+            jobId={job.id}
+            initialText={job.postingText ?? ""}
+          />
           <ParseControl
             jobId={job.id}
             configured={Boolean(env.OPENAI_API_KEY)}
             status={current?.status ?? null}
             attempts={current?.attempts ?? 0}
-            canParse={descriptionSchema.safeParse(job.description).success}
+            canParse={descriptionSchema.safeParse(job.source).success}
           />
           {current && (
             <section className="space-y-2 rounded-lg border bg-surface p-5 text-xs text-text-secondary">

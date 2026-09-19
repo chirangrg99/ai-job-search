@@ -16,13 +16,14 @@ const repo = {
   claim: vi.fn(),
   complete: vi.fn(),
   fail: vi.fn(),
+  savePosting: vi.fn(),
 } satisfies JobParserRepository;
 const ai = { parseJobDescription: vi.fn() } satisfies AIClient;
 beforeEach(() => {
   vi.resetAllMocks();
   repo.job.mockResolvedValue({
     id,
-    description: frontendDescription,
+    source: frontendDescription,
     complete: true,
   });
   repo.current.mockResolvedValue(null);
@@ -54,7 +55,7 @@ it("requires an owned job before AI or cache access", async () => {
 it("rejects oversized sources without truncation", async () => {
   repo.job.mockResolvedValue({
     id,
-    description: "x".repeat(30001),
+    source: "x".repeat(80001),
     complete: true,
   });
   expect((await parseJobDescription(repo, ai, "model", { jobId: id })).ok).toBe(
@@ -157,7 +158,7 @@ it("hashes exact source and completeness deterministically", () => {
 
 it("does not persist a quoted section heading as a job title", async () => {
   const source = "Role Function and Purpose";
-  repo.job.mockResolvedValue({ id, description: source, complete: false });
+  repo.job.mockResolvedValue({ id, source, complete: false });
   ai.parseJobDescription.mockResolvedValue({
     output: {
       ...emptyParsedJob(),
