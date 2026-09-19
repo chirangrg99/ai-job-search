@@ -226,7 +226,7 @@ export function DiscoveryWorkspace({
         </div>
         <p className="text-sm text-text-secondary">
           Exact duplicates reuse the existing job. Likely duplicates remain
-          separate for review. No AI analysis has run.
+          separate for review. Open a job to extract its requirements.
         </p>
         {data.pending > 0 && (
           <div className="rounded-md bg-warning-soft p-3 text-sm">
@@ -252,7 +252,9 @@ export function DiscoveryWorkspace({
                   <div className="grid gap-3 md:grid-cols-[2fr_1fr_1fr]">
                     <div className="min-w-0">
                       <h3 className="font-semibold [overflow-wrap:anywhere]">
-                        {job.title}
+                        <Link className="hover:underline" href={`/jobs/${id}`}>
+                          {job.title}
+                        </Link>
                       </h3>
                       <p className="text-sm [overflow-wrap:anywhere] text-text-secondary">
                         {job.company ?? "Company not provided"}

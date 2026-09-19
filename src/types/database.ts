@@ -656,6 +656,90 @@ export type Database = {
           },
         ];
       };
+      job_description_parses: {
+        Row: {
+          analyzed_at: string | null;
+          attempts: number;
+          created_at: string;
+          description_complete: boolean;
+          description_hash: string;
+          error_code: string | null;
+          id: string;
+          job_id: string;
+          lease_expires_at: string;
+          lease_token: string;
+          model: string;
+          parsed_output: Json | null;
+          profile_id: string;
+          prompt_version: string;
+          response_model: string | null;
+          retry_after: string | null;
+          schema_version: string;
+          source_description: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          analyzed_at?: string | null;
+          attempts?: number;
+          created_at?: string;
+          description_complete: boolean;
+          description_hash: string;
+          error_code?: string | null;
+          id?: string;
+          job_id: string;
+          lease_expires_at?: string;
+          lease_token?: string;
+          model: string;
+          parsed_output?: Json | null;
+          profile_id: string;
+          prompt_version: string;
+          response_model?: string | null;
+          retry_after?: string | null;
+          schema_version: string;
+          source_description: string;
+          status: string;
+          updated_at?: string;
+        };
+        Update: {
+          analyzed_at?: string | null;
+          attempts?: number;
+          created_at?: string;
+          description_complete?: boolean;
+          description_hash?: string;
+          error_code?: string | null;
+          id?: string;
+          job_id?: string;
+          lease_expires_at?: string;
+          lease_token?: string;
+          model?: string;
+          parsed_output?: Json | null;
+          profile_id?: string;
+          prompt_version?: string;
+          response_model?: string | null;
+          retry_after?: string | null;
+          schema_version?: string;
+          source_description?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_description_parses_job_id_profile_id_fkey";
+            columns: ["job_id", "profile_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id", "owner_profile_id"];
+          },
+          {
+            foreignKeyName: "job_description_parses_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "candidate_profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       job_discoveries: {
         Row: {
           deduplication_state: string | null;
@@ -1170,6 +1254,19 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      claim_job_parse: {
+        Args: {
+          expected_complete: boolean;
+          expected_description: string;
+          requested_model: string;
+          requested_prompt: string;
+          requested_schema: string;
+          retry?: boolean;
+          source_hash: string;
+          target_job: string;
+        };
+        Returns: Json;
+      };
       normalize_discovery: {
         Args: { discovery_id: string; normalized: Json };
         Returns: Json;

@@ -36,6 +36,12 @@ export const serverEnvSchema = z
     ),
     SUPABASE_SERVICE_ROLE_KEY: optionalValue(z.string().trim().min(1)),
     OPENAI_API_KEY: optionalValue(z.string().trim().min(1)),
+    OPENAI_JOB_PARSER_MODEL: optionalValue(
+      z
+        .string()
+        .trim()
+        .regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,119}$/),
+    ),
     ADZUNA_APP_ID: optionalValue(z.string().trim().min(1)),
     ADZUNA_APP_KEY: optionalValue(z.string().trim().min(1)),
   })

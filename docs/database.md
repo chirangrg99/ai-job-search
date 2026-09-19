@@ -92,3 +92,7 @@ Standalone Playwright remains subject to the host's Chromium launch restriction 
 ## Phase 6 normalization
 
 `20260919033953_job_normalization.sql` makes newly discovered jobs candidate-owned, retaining read-only legacy catalog rows with null ownership. Provider identities and discovery results use composite ownership relationships. The authenticated normalization RPC runs with invoker privileges and a candidate-scoped advisory transaction lock. See `docs/job-normalization.md` for identity/update rules and `docs/phase-6-report.md` for checks.
+
+## Phase 7 parser cache
+
+Migration `20260919035922_job_description_parses.sql` is applied to ai-job-finding. It adds owner-scoped parsing records, a composite job/owner foreign key, strict JSON/evidence checks, versioned unique cache identity and transactional expiring claims. RLS uses candidate-profile ownership; no service-role key is required. Generated types include the table and claim RPC. Transactional `supabase/tests/job_parser.sql` passed locally and on the hosted project, including malformed-output rejection, cache reuse and cross-user denial. See `job-parser.md` for limits and retry behavior.
