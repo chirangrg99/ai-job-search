@@ -46,3 +46,9 @@ Schema and evidence checks cannot prove semantic classification or exhaustive ex
 ## Checkpoint and next phase
 
 Commit/push outcome is recorded in the completion message. Recommended next phase: candidate-to-job fit analysis, only after explicit authorization. Stop after Phase 7.
+
+## Follow-up: identity extraction correction
+
+The user-approved live retry succeeded and saved output, revealing heading-as-title and anonymous-description-as-company errors. Prompt `job-parser-v2` now includes explicit identity rules and contrasting examples; schema field descriptions reinforce them. Narrow semantic rejection checks run before saving. Existing v1 cache entries remain stored but are not reused by v2. No migration or visual redesign.
+
+Changed prompt/schema, schema/service tests, opt-in AI test and parser/report documentation. Added 14 offline regression cases including legitimate names with Company/Client words and non-English identities. Full suite: 469 passing tests; lint, typecheck, build and formatting passed. Two live tests remain opt-in and were skipped; no additional API credits used for this correction. Recommended next step is a user-triggered parse with v2, then Phase 8 only upon request.

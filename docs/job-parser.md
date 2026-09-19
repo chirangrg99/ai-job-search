@@ -22,6 +22,12 @@ Inputs are limited to 30,000 characters without truncation; output is limited to
 
 Set server-only `OPENAI_API_KEY` in local/deployment secret configuration. Optional `OPENAI_JOB_PARSER_MODEL` overrides the pinned default `gpt-4.1-mini-2025-04-14`; use a model supporting Structured Outputs. Restart the app after changes. Requests set `store: false`; provider retention policies still apply.
 
-`npm test` uses artificial fixtures and mocked HTTP; it makes no OpenAI calls. `npm run test:ai` is separate and skips unless both `RUN_AI_INTEGRATION=1` and `OPENAI_API_KEY` exist in the process environment. It does not load `.env.local` automatically. Enabling it makes one billable request with an artificial fixture. Never put credential values into commands, reports or commits.
+`npm test` uses artificial fixtures and mocked HTTP; it makes no OpenAI calls. `npm run test:ai` is separate and skips unless both `RUN_AI_INTEGRATION=1` and `OPENAI_API_KEY` exist in the process environment. It does not load `.env.local` automatically. Enabling it makes billable requests with artificial fixtures. Never put credential values into commands, reports or commits.
 
 Implementation references: [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs) and [GPT-4.1 mini](https://developers.openai.com/api/docs/models/gpt-4.1-mini).
+
+## Identity extraction correction (prompt v2)
+
+The parser now distinguishes named occupations and hiring organizations from section headings, anonymous business descriptions, recruiters and technology vendors. Positive and negative prompt examples explicitly require null when identity is unstated. Narrow application validation rejects known heading/anonymous-description errors before persistence; it does not claim to recognize every possible semantic mistake. Old v1 records are retained for audit but are excluded by the v2 cache key, with no automatic paid reparse. Provider title/company metadata stays unchanged.
+
+The original approved live retry succeeded but exposed an identity classification error; the correction adds 14 offline regression cases and a separate opt-in live snippet regression. The new prompt has not yet been live-tested. No database migration or design change is required.

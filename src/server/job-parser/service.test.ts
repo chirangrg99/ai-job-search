@@ -5,6 +5,7 @@ import { descriptionHash } from "./identity";
 import { AIError, type AIClient } from "@/server/ai/client";
 import type { JobParserRepository } from "./repository";
 import {
+  emptyParsedJob,
   frontendDescription,
   frontendParsedJob,
 } from "../../../tests/fixtures/job-descriptions";
@@ -152,4 +153,20 @@ it("hashes exact source and completeness deterministically", () => {
     expect(descriptionHash(text, complete)).not.toBe(
       descriptionHash("Job", true),
     );
+});
+
+it("does not persist a quoted section heading as a job title", async () => {
+  const source = "Role Function and Purpose";
+  repo.job.mockResolvedValue({ id, description: source, complete: false });
+  ai.parseJobDescription.mockResolvedValue({
+    output: {
+      ...emptyParsedJob(),
+      title: { text: source, evidence: source },
+    },
+    model: "model",
+  });
+  const result = await parseJobDescription(repo, ai, "model", { jobId: id });
+  expect(result.ok).toBe(false);
+  expect(repo.complete).not.toHaveBeenCalled();
+  expect(repo.fail).toHaveBeenCalledWith(id, id, "invalid_output");
 });

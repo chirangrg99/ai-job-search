@@ -20,3 +20,20 @@ it.skipIf(!enabled)(
     expect(parsed.preferredQualifications.length).toBeGreaterThan(0);
   },
 );
+
+it.skipIf(!enabled)(
+  "keeps anonymous snippet title and company unknown",
+  async () => {
+    const source =
+      "Company Overview: The hiring organization provides global businesses with solutions for international payments, currency risk management, and growth support. Role Function and Purpose: As part of an agile team, you will contribute to advancing core international payment proce…";
+    const result = await new OpenAIClient(
+      process.env.OPENAI_API_KEY!,
+    ).parseJobDescription(
+      source,
+      process.env.OPENAI_JOB_PARSER_MODEL ?? DEFAULT_PARSER_MODEL,
+    );
+    const parsed = validateParsedJob(result.output, source);
+    expect(parsed.title).toBeNull();
+    expect(parsed.company).toBeNull();
+  },
+);

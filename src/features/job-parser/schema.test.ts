@@ -171,3 +171,55 @@ it("rejects excessive arrays", () =>
       }),
     }).success,
   ).toBe(false));
+
+it.each([
+  "Role Function and Purpose",
+  " ABOUT THE ROLE: ",
+  "Job description",
+  "Key responsibilities",
+])("rejects heading-as-title: %s", (text) => {
+  expect(() =>
+    validateParsedJob(
+      { ...emptyParsedJob(), title: { text, evidence: text } },
+      text,
+    ),
+  ).toThrow("section heading");
+});
+it.each([
+  "The hiring organization provides global businesses with solutions for international payments, currency risk management, and growth support.",
+  "Our client is a leading provider.",
+  "the hiring organisation",
+  "Company Overview",
+])("rejects anonymous company identity: %s", (text) => {
+  expect(() =>
+    validateParsedJob(
+      { ...emptyParsedJob(), company: { text, evidence: text } },
+      text,
+    ),
+  ).toThrow("company name");
+});
+it.each([
+  ["Frontend Developer", "Acme Payments"],
+  ["Company Secretary", "The Company Store"],
+  ["Director of Client Services", "Client Solutions Inc."],
+  ["Développeur logiciel", "Société Exemple"],
+])("preserves genuine identity %s at %s", (title, company) => {
+  const source = `${company} is hiring a ${title}.`;
+  expect(
+    validateParsedJob(
+      {
+        ...emptyParsedJob(),
+        title: { text: title, evidence: source },
+        company: { text: company, evidence: source },
+      },
+      source,
+    ).company?.text,
+  ).toBe(company);
+});
+it("accepts unknown identity for anonymous truncated snippets", () => {
+  const source =
+    "Company Overview: The hiring organization provides payment solutions. Role Function and Purpose: You will contribute to advancing payment proce…";
+  const parsed = validateParsedJob(emptyParsedJob(), source);
+  expect(parsed.title).toBeNull();
+  expect(parsed.company).toBeNull();
+});

@@ -28,8 +28,16 @@ export const requirementGroups = [
   "scheduleRequirements",
 ] as const;
 export const parsedJobSchema = z.strictObject({
-  title: evidenceText.nullable(),
-  company: evidenceText.nullable(),
+  title: evidenceText
+    .nullable()
+    .describe(
+      "Actual advertised occupation copied from the description; null if absent. Never a section heading.",
+    ),
+  company: evidenceText
+    .nullable()
+    .describe(
+      "Explicit hiring organization name only; null for anonymous employers or business descriptions.",
+    ),
   location: evidenceText.nullable(),
   employmentType: evidenceText.nullable(),
   salary: z
@@ -95,6 +103,41 @@ export function validateParsedJob(input: unknown, source: string): ParsedJob {
     "workAuthorizationWording",
   ] as const)
     if (parsed[key]) check(parsed[key]);
+  // Narrow rejection rules for observed identity errors. These do not prove identity.
+  const heading = (text: string) =>
+    text
+      .trim()
+      .toLowerCase()
+      .replace(/[:.!?]+$/u, "")
+      .replace(/\s+/gu, " ");
+  const sectionHeadings = new Set([
+    "role function and purpose",
+    "role purpose",
+    "job description",
+    "job summary",
+    "about the role",
+    "about this role",
+    "the role",
+    "responsibilities",
+    "key responsibilities",
+    "qualifications",
+    "requirements",
+    "company overview",
+    "about us",
+  ]);
+  if (parsed.title && sectionHeadings.has(heading(parsed.title.text)))
+    throw new Error("A section heading is not a job title.");
+  if (
+    parsed.company &&
+    (sectionHeadings.has(heading(parsed.company.text)) ||
+      /^(?:(?:the|our)\s+)?(?:hiring (?:organization|organisation|company)|client|employer|company)\s+(?:provides?|offers?|is|are|seeks?|needs?|operates?|speciali[sz]es?)\b/iu.test(
+        parsed.company.text.trim(),
+      ) ||
+      /^(?:(?:the|our)\s+)?(?:hiring (?:organization|organisation|company)|client|employer|company)$/iu.test(
+        parsed.company.text.trim(),
+      ))
+  )
+    throw new Error("An anonymous employer description is not a company name.");
   for (const group of requirementGroups)
     for (const item of parsed[group]) check(item);
   for (const item of parsed.ambiguities) check(item);
