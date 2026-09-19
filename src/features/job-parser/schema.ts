@@ -66,7 +66,9 @@ export const parsedJobSchema = z.strictObject({
   educationRequirements: requirements,
   experienceRequirements: requirements,
   physicalRequirements: requirements,
-  scheduleRequirements: requirements,
+  scheduleRequirements: requirements.describe(
+    "Explicit hours, shifts, days, on-call duties or attendance cadence. Exclude bare Hybrid/Remote/On-site labels; use [] when timing is unstated.",
+  ),
   workAuthorizationWording: evidenceText.nullable(),
   ambiguities: z.array(evidenceText).max(60),
 });
