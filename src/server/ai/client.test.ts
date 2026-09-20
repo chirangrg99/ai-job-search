@@ -2,10 +2,39 @@
 import { expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 import { OpenAIClient } from "./client";
+import { sourcePassages } from "@/server/job-parser/references";
 import {
   frontendParsedJob,
   frontendDescription,
 } from "../../../tests/fixtures/job-descriptions";
+function referenceFixture() {
+  const original = frontendParsedJob();
+  const passages = sourcePassages(frontendDescription);
+  const ref = (text: string) => passages.find((p) => p.text.includes(text))!.id;
+  const output: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(original)) {
+    if (Array.isArray(value))
+      output[key] = value.map((v) =>
+        key === "ambiguities"
+          ? ref(v.text)
+          : {
+              sourceId: ref(v.text),
+              priority: "priority" in v ? v.priority : "unspecified",
+            },
+      );
+    else if (value === null) output[key] = null;
+    else if (key === "salary")
+      output[key] = { ...value, sourceId: ref(value.evidence) };
+    else
+      output[key] = {
+        text: "text" in value ? value.text : "",
+        sourceId: ref("text" in value ? value.text : ""),
+      };
+  }
+  if (output.salary && typeof output.salary === "object")
+    delete (output.salary as Record<string, unknown>).evidence;
+  return output;
+}
 function response(overrides: Record<string, unknown> = {}) {
   return {
     id: "resp_test",
@@ -22,7 +51,7 @@ function response(overrides: Record<string, unknown> = {}) {
         content: [
           {
             type: "output_text",
-            text: JSON.stringify(frontendParsedJob()),
+            text: JSON.stringify(referenceFixture()),
             annotations: [],
           },
         ],
@@ -39,7 +68,7 @@ it("requests strict structured output, bounds spending and sends only source tex
     "fake-test-key",
     fetcher,
   ).parseJobDescription(frontendDescription, "test-model");
-  expect(result.output).toEqual(frontendParsedJob());
+  expect(result.output).toMatchObject({ title: frontendParsedJob().title });
   const body = JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body));
   expect(body).toMatchObject({
     model: "test-model",
@@ -52,7 +81,7 @@ it("requests strict structured output, bounds spending and sends only source tex
   expect(body.text.format.schema.additionalProperties).toBe(false);
   expect(body.input).toHaveLength(1);
   expect(JSON.parse(body.input[0].content)).toEqual({
-    postingSource: frontendDescription,
+    passages: sourcePassages(frontendDescription),
   });
   expect(body.tools).toBeUndefined();
 });

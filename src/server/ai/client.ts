@@ -1,7 +1,11 @@
 import "server-only";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
-import { parsedJobSchema } from "@/features/job-parser/schema";
+import {
+  referenceOutputSchema,
+  resolveReferences,
+  sourcePassages,
+} from "@/server/job-parser/references";
 import { PARSER_INSTRUCTIONS } from "@/server/job-parser/prompt";
 export interface AIClient {
   parseJobDescription(
@@ -55,10 +59,12 @@ export class OpenAIClient implements AIClient {
         input: [
           {
             role: "user",
-            content: JSON.stringify({ postingSource: description }),
+            content: JSON.stringify({ passages: sourcePassages(description) }),
           },
         ],
-        text: { format: zodTextFormat(parsedJobSchema, "job_requirements") },
+        text: {
+          format: zodTextFormat(referenceOutputSchema, "job_requirements"),
+        },
       });
       if (response.status !== "completed") throw new AIError("incomplete");
       if (
@@ -70,7 +76,14 @@ export class OpenAIClient implements AIClient {
       )
         throw new AIError("refused");
       if (!response.output_parsed) throw new AIError("invalid_output");
-      return { output: response.output_parsed, model: response.model };
+      try {
+        return {
+          output: resolveReferences(response.output_parsed, description),
+          model: response.model,
+        };
+      } catch {
+        throw new AIError("invalid_output");
+      }
     } catch (error) {
       if (error instanceof AIError) throw error;
       // Never propagate SDK errors containing request details, headers or generated content.

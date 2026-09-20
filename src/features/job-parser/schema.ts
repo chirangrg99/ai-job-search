@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { literalEvidence } from "./evidence";
 
 export const evidenceText = z.strictObject({
   text: z.string().min(1).max(1500),
@@ -89,13 +90,14 @@ const periodPatterns = {
 export function validateParsedJob(input: unknown, source: string): ParsedJob {
   descriptionSchema.parse(source);
   const parsed = parsedJobSchema.parse(input);
-  function check(item: z.infer<typeof evidenceText>) {
-    if (
-      !source.includes(item.evidence) ||
-      !item.evidence.includes(item.text) ||
-      !item.text.trim()
-    )
-      throw new Error("Unsupported extraction evidence.");
+  function check(item: z.infer<typeof evidenceText>, path: string) {
+    const evidence = literalEvidence(source, item.evidence);
+    const text =
+      evidence === null ? null : literalEvidence(evidence, item.text);
+    if (evidence === null || text === null)
+      throw new Error(`Unsupported extraction evidence at ${path}.`);
+    item.evidence = evidence;
+    item.text = text;
   }
   for (const key of [
     "title",
@@ -104,7 +106,7 @@ export function validateParsedJob(input: unknown, source: string): ParsedJob {
     "employmentType",
     "workAuthorizationWording",
   ] as const)
-    if (parsed[key]) check(parsed[key]);
+    if (parsed[key]) check(parsed[key], key);
   // Narrow rejection rules for observed identity errors. These do not prove identity.
   const heading = (text: string) =>
     text
@@ -141,12 +143,15 @@ export function validateParsedJob(input: unknown, source: string): ParsedJob {
   )
     throw new Error("An anonymous employer description is not a company name.");
   for (const group of requirementGroups)
-    for (const item of parsed[group]) check(item);
-  for (const item of parsed.ambiguities) check(item);
+    for (const [index, item] of parsed[group].entries())
+      check(item, `${group}[${index}]`);
+  for (const [index, item] of parsed.ambiguities.entries())
+    check(item, `ambiguities[${index}]`);
   const salary = parsed.salary;
   if (salary) {
-    if (!source.includes(salary.evidence))
-      throw new Error("Unsupported salary evidence.");
+    const evidence = literalEvidence(source, salary.evidence);
+    if (evidence === null) throw new Error("Unsupported salary evidence.");
+    salary.evidence = evidence;
     if (
       salary.minimum !== null &&
       salary.maximum !== null &&

@@ -177,3 +177,64 @@ it("source RPC does not disclose another user's posting", async () => {
     db.query("select public.job_parse_source($1)", [job]),
   ).rejects.toThrow("Job not found");
 });
+
+it("renders imported JSON as literal text usable by both evidence validators", async () => {
+  const description =
+    'Required skills:\nUse "Python" and C:\\tools.\nFrench: expérience requise.';
+  await db.query("update public.jobs set posting_text=$2 where id=$1", [
+    job,
+    JSON.stringify({ "@type": "JobPosting", description }),
+  ]);
+  const source = (
+    await db.query<{ s: string }>("select public.job_parse_source($1) s", [job])
+  ).rows[0]!.s;
+  expect(source).toContain(description);
+  expect(source).not.toContain("\\nUse");
+  const output = {
+    ...frontendParsedJob(),
+    title: null,
+    company: null,
+    location: null,
+    salary: null,
+    employmentType: null,
+    responsibilities: [],
+    requiredQualifications: [],
+    preferredQualifications: [],
+    skills: [
+      {
+        text: 'Use "Python" and C:\\tools.',
+        evidence: description,
+        priority: "required",
+      },
+    ],
+    technologies: [],
+    educationRequirements: [],
+    experienceRequirements: [],
+    scheduleRequirements: [],
+    workAuthorizationWording: null,
+  };
+  const { validateParsedJob } = await import("@/features/job-parser/schema");
+  expect(() => validateParsedJob(output, source)).not.toThrow();
+  const result = await db.query<{ valid: boolean }>(
+    "select private.valid_job_parse($1,$2) valid",
+    [JSON.stringify(output), source],
+  );
+  expect(result.rows[0]!.valid).toBe(true);
+});
+it("readable snapshot retains metadata and original conflicting titles", async () => {
+  await db.query(
+    "update public.jobs set title='Provider title', posting_text=$2 where id=$1",
+    [
+      job,
+      JSON.stringify({
+        title: "Original title",
+        description: "A complete role description.",
+      }),
+    ],
+  );
+  const source = (
+    await db.query<{ s: string }>("select public.job_parse_source($1) s", [job])
+  ).rows[0]!.s;
+  expect(source).toContain("provider_metadata.title:\nProvider title");
+  expect(source).toContain("original_posting_text.title:\nOriginal title");
+});
