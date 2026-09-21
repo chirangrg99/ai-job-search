@@ -12,12 +12,18 @@ import { ParseControl } from "@/features/job-parser/parse-control";
 import { ParsedRequirements } from "@/features/job-parser/requirements";
 import { descriptionSchema } from "@/features/job-parser/schema";
 import { safeJobUrl } from "@/features/discovery/schema";
+import { fitRepository } from "@/server/fit/repository";
+import { preferencesRepository } from "@/server/preferences/repository";
+import { FitControl } from "@/features/fit/control";
+import { FitResultView } from "@/features/fit/result";
 export const metadata: Metadata = { title: "Job Detail" };
 export const maxDuration = 120;
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ jobId: string }>;
+  searchParams: Promise<{ search?: string; fit?: string }>;
 }) {
   const { client, user } = await requireUser();
   const { jobId } = await params;
@@ -30,6 +36,29 @@ export default async function Page({
   const current = job.source
     ? await repo.current(job.id, job.source, job.complete)
     : null;
+  const query = await searchParams;
+  const preferenceId = z.uuid().safeParse(query.search).success
+    ? query.search!
+    : null;
+  const mode = query.fit === "semantic" ? "semantic" : "rules";
+  const searches = await preferencesRepository(client, user.id).list();
+  let assessment = null;
+  let fitError = "";
+  if (current?.parsed_output) {
+    try {
+      const fit = fitRepository(client, user.id, model);
+      const snapshot = await fit.load(
+        jobId,
+        preferenceId,
+        mode,
+        new Date().toISOString().slice(0, 10),
+      );
+      assessment = await fit.current(snapshot);
+    } catch {
+      fitError =
+        "Could not load the assessment. Check the saved search or reload.";
+    }
+  }
   const url = safeJobUrl.safeParse(job.applicationUrl);
   return (
     <div className="space-y-6">
@@ -79,19 +108,37 @@ export default async function Page({
               </p>
             </details>
           </section>
+          {assessment ? (
+            <FitResultView result={assessment.result} />
+          ) : current?.parsed_output ? (
+            <section className="rounded-lg border bg-surface p-5">
+              <h2 className="font-semibold">Not assessed for current inputs</h2>
+              <p className="mt-2 text-sm text-text-secondary">
+                {fitError ||
+                  "Assess fit using your current verified profile and selected search. Older results are not reused after inputs change."}
+              </p>
+            </section>
+          ) : null}
           {current?.parsed_output ? (
             <ParsedRequirements data={current.parsed_output} />
           ) : (
             <section className="rounded-lg border bg-surface p-5">
               <h2 className="font-semibold">Requirements not yet available</h2>
               <p className="mt-2 text-sm text-text-secondary">
-                Run the parser to extract this description. No fit score or
-                candidate matching is performed.
+                Run the parser to extract this description before assessing fit.
               </p>
             </section>
           )}
         </div>
         <aside className="min-w-0 space-y-4">
+          <FitControl
+            jobId={jobId}
+            searches={searches.map(({ id, name }) => ({ id, name }))}
+            preferenceId={preferenceId}
+            mode={mode}
+            configured={Boolean(env.OPENAI_API_KEY)}
+            ready={Boolean(current?.parsed_output)}
+          />
           <PostingSourceEditor
             jobId={job.id}
             initialText={job.postingText ?? ""}

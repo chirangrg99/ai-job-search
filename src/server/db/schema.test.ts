@@ -25,6 +25,7 @@ test("migrations apply from empty PostgreSQL and enforce ownership and constrain
     await db.exec(readFileSync("supabase/tests/job_discovery.sql", "utf8"));
     await db.exec(readFileSync("supabase/tests/job_normalization.sql", "utf8"));
     await db.exec(readFileSync("supabase/tests/job_parser.sql", "utf8"));
+    await db.exec(readFileSync("supabase/tests/fit_scoring.sql", "utf8"));
     const result = await db.query<{ count: number }>(
       "select count(*)::int as count from public.candidate_profiles",
     );

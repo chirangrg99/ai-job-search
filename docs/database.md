@@ -96,3 +96,7 @@ Standalone Playwright remains subject to the host's Chromium launch restriction 
 ## Phase 7 parser cache
 
 Migration `20260919035922_job_description_parses.sql` is applied to ai-job-finding. It adds owner-scoped parsing records, a composite job/owner foreign key, strict JSON/evidence checks, versioned unique cache identity and transactional expiring claims. RLS uses candidate-profile ownership; no service-role key is required. Generated types include the table and claim RPC. Transactional `supabase/tests/job_parser.sql` passed locally and on the hosted project, including malformed-output rejection, cache reuse and cross-user denial. See `job-parser.md` for limits and retry behavior.
+
+## Phase 8 fit analyses
+
+Migration `20260921143847_fit_scoring.sql` extends `job_analysis` with input hash, engine version, verified input snapshot, full scored result and optional semantic output. It replaces logical-version uniqueness with immutable input-version uniqueness and strengthens the owner policy to reject analyses of another candidate's private jobs. Existing shared-catalog references remain supported. New analyses preserve the existing typed output columns; stored snapshots and category breakdowns explain the score. See [fit scoring](fit-scoring.md) for policy and reproducibility.

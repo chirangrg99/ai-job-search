@@ -579,8 +579,11 @@ export type Database = {
           analyzed_at: string;
           concerns: Json;
           created_at: string;
+          engine_version: string | null;
           fit_score: number | null;
           id: string;
+          input_hash: string | null;
+          input_snapshot: Json | null;
           job_id: string;
           matched_requirements: Json;
           missing_preferred_requirements: Json;
@@ -592,14 +595,19 @@ export type Database = {
           prompt_version: string;
           reasoning_summary: string | null;
           recommendation: string | null;
+          result: Json | null;
+          semantic_output: Json | null;
           strengths: Json;
         };
         Insert: {
           analyzed_at?: string;
           concerns?: Json;
           created_at?: string;
+          engine_version?: string | null;
           fit_score?: number | null;
           id?: string;
+          input_hash?: string | null;
+          input_snapshot?: Json | null;
           job_id: string;
           matched_requirements?: Json;
           missing_preferred_requirements?: Json;
@@ -611,14 +619,19 @@ export type Database = {
           prompt_version: string;
           reasoning_summary?: string | null;
           recommendation?: string | null;
+          result?: Json | null;
+          semantic_output?: Json | null;
           strengths?: Json;
         };
         Update: {
           analyzed_at?: string;
           concerns?: Json;
           created_at?: string;
+          engine_version?: string | null;
           fit_score?: number | null;
           id?: string;
+          input_hash?: string | null;
+          input_snapshot?: Json | null;
           job_id?: string;
           matched_requirements?: Json;
           missing_preferred_requirements?: Json;
@@ -630,6 +643,8 @@ export type Database = {
           prompt_version?: string;
           reasoning_summary?: string | null;
           recommendation?: string | null;
+          result?: Json | null;
+          semantic_output?: Json | null;
           strengths?: Json;
         };
         Relationships: [
