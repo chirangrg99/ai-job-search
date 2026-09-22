@@ -22,7 +22,7 @@ export const categoryLabels: Record<Category, string> = {
   compensation: "Compensation",
 };
 export const FIT_CONFIG = {
-  version: "fit-v1",
+  version: "fit-v2",
   weights: {
     required: 30,
     preferred: 10,
@@ -61,6 +61,7 @@ export type CandidateEvidence = Evidence & {
   sensitive: boolean;
 };
 export const requirementSchema = z.object({
+  needsReview: z.boolean().optional(),
   id: z.string(),
   text: z.string(),
   evidence: z.string(),

@@ -5,6 +5,7 @@ import type { Database, Json } from "@/types/database";
 import { candidateRepository } from "@/server/candidate/repository";
 import { preferencesRepository } from "@/server/preferences/repository";
 import { jobParserRepository } from "@/server/job-parser/repository";
+import { auditExperienceConflicts } from "@/features/fit/source-audit";
 import { verifiedEvidence } from "@/features/fit/evidence";
 import {
   FIT_CONFIG,
@@ -67,6 +68,7 @@ export function fitRepository(
     if (preferenceId && !search) throw new Error("Saved search unavailable.");
     const input: FitInput = {
       parsed: parsed.parsed_output,
+      sourceConflicts: auditExperienceConflicts(job.source),
       candidates: verifiedEvidence(profile, asOf),
       search: search ?? null,
       remoteType: details.data.remote_type,

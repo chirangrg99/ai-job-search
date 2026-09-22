@@ -48,6 +48,11 @@ export function verifiedEvidence(
         if ((from && from > asOf) || (to && to < asOf)) return [];
       }
       const role = parent?.values ?? v;
+      if (
+        (item.kind === "experience" || parent) &&
+        (dateBound(String(role.start_date ?? ""), false) ?? "") > asOf
+      )
+        return [];
       const start =
         item.kind === "experience" || parent
           ? dateBound(String(role.start_date ?? ""), true)
@@ -126,15 +131,43 @@ export function durationYears(
         : [],
     )
     .sort((a, b) => a[0] - b[0]);
-  let total = 0,
-    start = 0,
-    end = 0;
-  for (const [a, b] of ranges) {
+  if (!ranges.length) return 0;
+  const merged: [number, number][] = [];
+  let start = ranges[0]![0],
+    end = ranges[0]![1];
+  for (const [a, b] of ranges.slice(1)) {
     if (a > end) {
-      total += end - start;
+      merged.push([start, end]);
       start = a;
       end = b;
     } else end = Math.max(end, b);
   }
-  return (total + end - start) / (365.25 * 86400000);
+  merged.push([start, end]);
+  function anniversary(date: Date, months: number) {
+    const first = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1),
+    );
+    const last = new Date(
+      Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0),
+    ).getUTCDate();
+    return Date.UTC(
+      first.getUTCFullYear(),
+      first.getUTCMonth(),
+      Math.min(date.getUTCDate(), last),
+    );
+  }
+  return (
+    merged.reduce((sum, [a, b]) => {
+      const from = new Date(a),
+        to = new Date(b);
+      let months =
+        (to.getUTCFullYear() - from.getUTCFullYear()) * 12 +
+        to.getUTCMonth() -
+        from.getUTCMonth();
+      if (anniversary(from, months) > b) months--;
+      const current = anniversary(from, months),
+        next = anniversary(from, months + 1);
+      return sum + months + (b - current) / (next - current);
+    }, 0) / 12
+  );
 }

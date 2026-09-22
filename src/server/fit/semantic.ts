@@ -38,6 +38,7 @@ export function shortlist(
       (m) =>
         m.status === "unknown" &&
         m.priority !== "ambiguous" &&
+        !m.needsReview &&
         ["required", "preferred"].includes(m.category) &&
         /\b(customer|client|communication|collaborat\w*|team\w*|stakeholder|service|support)\b/i.test(
           m.text,

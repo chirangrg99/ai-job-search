@@ -44,3 +44,14 @@ Stop after Phase 8. Recommended next phase, only on request: relevant candidate 
 - No real candidate excerpts were sent to OpenAI; no new API credentials or dependencies were added.
 
 Commit/push outcome is recorded in the completion message. Phase 9 is not started.
+
+
+## Phase 8 follow-up — matcher version 2
+
+Improved exact matching for neutral requirement wrappers, reviewed technology spellings, specific degree abbreviations and licence spelling variants. Explicitly grouped AND/OR conditions are evaluated without granting full credit for a partly supported branch; mixed ungrouped conditions remain unknown. Repeated normalized requirements are deduplicated with specialized categories taking precedence.
+
+Added a deterministic source audit for supported English/French minimum-experience wording. It catches both the required and preferred software-development threshold conflicts in the previously saved complete Software Developer II posting, even when the parser omitted a French variant. Conflicting passages appear together for review; neither value is assumed correct. This is deliberately bounded, not a general translation system.
+
+Improved calendar duration boundaries and historical dates, excluded future roles/dependent bullets, and prevented a positive title from overriding negated evidence. The engine version is `fit-v2`; earlier scores remain historical and must be reassessed. No migration, credential change, candidate-profile mutation, live OpenAI call or Phase 9 work.
+
+Files added: `qualification.ts`, `source-audit.ts`, `improvements.test.ts` under `src/features/fit`. Updated matcher/evidence/requirement/scoring models, source loading, semantic eligibility and these documents. The offline audit against the saved full public posting passed. Final verification: 591 tests across 42 files; lint, typecheck, formatting and production build pass. Preview/checkpoint outcome is reported in the completion message.

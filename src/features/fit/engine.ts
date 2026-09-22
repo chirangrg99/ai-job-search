@@ -11,7 +11,9 @@ import {
 import { buildRequirements } from "./requirements";
 import { deterministicMatch } from "./match";
 import { compatibility } from "./compatibility";
+import type { SourceConflict } from "./source-audit";
 export type FitInput = {
+  sourceConflicts?: SourceConflict[];
   parsed: ParsedJob;
   candidates: CandidateEvidence[];
   search: SavedSearch | null;
@@ -21,7 +23,7 @@ export type FitInput = {
 };
 export function initialMatches(input: FitInput): Match[] {
   return [
-    ...buildRequirements(input.parsed).map((r) =>
+    ...buildRequirements(input.parsed, input.sourceConflicts).map((r) =>
       deterministicMatch(r, input.candidates, input.asOf),
     ),
     ...compatibility(input.parsed, input.search, input.remoteType),
@@ -78,7 +80,8 @@ export function scoreMatches(input: FitInput, matches: Match[]): FitResult {
     );
   }
   const sufficientEvidence =
-    input.candidates.length > 0 && buildRequirements(input.parsed).length > 0;
+    input.candidates.length > 0 &&
+    buildRequirements(input.parsed, input.sourceConflicts).length > 0;
   if (!sufficientEvidence) {
     fitScore = 0;
     caps.push(
@@ -107,6 +110,11 @@ export function scoreMatches(input: FitInput, matches: Match[]): FitResult {
   );
   const concerns = [
     ...caps,
+    ...(input.sourceConflicts?.length
+      ? [
+          "English/French experience thresholds disagree. Both source variants are preserved for review; neither threshold is assumed correct.",
+        ]
+      : []),
     ...(!input.sourceComplete
       ? [
           "Posting completeness is not confirmed; omitted requirements cannot be scored.",

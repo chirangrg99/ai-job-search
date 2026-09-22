@@ -1,4 +1,4 @@
-import { canonical, durationYears } from "./evidence";
+import { durationYears } from "./evidence";
 import type {
   CandidateEvidence,
   Evidence,
@@ -12,26 +12,12 @@ export const sourceReference = (e: CandidateEvidence): Evidence => ({
   label: e.label,
   quote: e.quote,
 });
-const clean = (s: string) =>
-  canonical(s)
-    .replace(
-      /^(?:must have |required: |proficiency in |proficient in |experience (?:with|in) |knowledge of |valid )/u,
-      "",
-    )
-    .replace(/ (?:is required|required|preferred|is preferred)$/u, "");
-const aliases: Record<string, string> = {
-  javascript: "javascript",
-  js: "javascript",
-  "react.js": "react",
-  reactjs: "react",
-  "node.js": "node.js",
-  nodejs: "node.js",
-  typescript: "typescript",
-  ts: "typescript",
-};
-const term = (s: string) => aliases[clean(s)] ?? clean(s);
-const negative =
-  /\b(no|not|without|never|lack|lacks|learning|beginner|expired)\b/i;
+import {
+  qualification,
+  conditions,
+  negativeClaim,
+  type Conditions,
+} from "./qualification";
 export function deterministicMatch(
   r: FitRequirement,
   candidates: CandidateEvidence[],
@@ -45,7 +31,7 @@ export function deterministicMatch(
     sources: [],
     method: "deterministic",
   };
-  if (r.priority === "ambiguous")
+  if (r.priority === "ambiguous" || r.needsReview)
     return {
       ...base,
       reason:
@@ -61,21 +47,24 @@ export function deterministicMatch(
       reason:
         "Requires explicit personal confirmation; no eligibility is inferred.",
     };
-  const pool = candidates.filter((c) =>
-    r.category === "credentials"
-      ? c.kind === "credential"
-      : r.category === "education"
-        ? c.kind === "education"
-        : c.kind !== "credential",
-  );
-  const years = clean(r.text).match(
-    /^(\d+(?:\.\d+)?)\+?\s*(years?|months?)(?:['’])?\s*(?:of\s+)?experience\s+(?:with|in|as (?:an? )?)\s*(.+)$/u,
+  const pool = candidates
+    .filter((c) => !negativeClaim.test(c.quote))
+    .filter((c) =>
+      r.category === "credentials"
+        ? c.kind === "credential"
+        : r.category === "education"
+          ? c.kind === "education"
+          : c.kind !== "credential",
+    );
+  const years = qualification(r.text).match(
+    /^(?:at least |minimum (?:of )?)?(\d+(?:\.\d+)?)\+?\s*(years?|months?)(?:['’])?\s*(?:of\s+)?experience\s+(?:with|in|as (?:an? )?)\s*(.+)$/u,
   );
   if (years) {
-    const subject = term(years[3]!);
+    const subject = qualification(years[3]!);
     const supported = pool.filter(
       (c) =>
-        c.kind === "experience" && c.claims.some((s) => term(s) === subject),
+        c.kind === "experience" &&
+        c.claims.some((s) => qualification(s) === subject),
     );
     const duration = durationYears(supported, asOf),
       target = Number(years[1]) / (years[2]!.startsWith("month") ? 12 : 1);
@@ -92,42 +81,53 @@ export function deterministicMatch(
       reason: `At least ${duration.toFixed(1)} verified years for this activity; ${target.toFixed(1)} requested. Overlapping roles are counted once.`,
     };
   }
-  // No substring matching: complex qualifications must not become exact from one mentioned skill.
-  const alternatives = clean(r.text).split(/\s+or\s+/u);
-  for (const option of alternatives) {
-    const atoms = option
-      .split(/\s+and\s+|,\s*/u)
-      .map(term)
-      .filter(Boolean);
-    const sources = atoms.map((atom) =>
-      pool.find((c) =>
-        c.claims.some((s) => !negative.test(s) && term(s) === atom),
+  const find = (atom: string) =>
+    pool.find((c) =>
+      c.claims.some(
+        (claim) => !negativeClaim.test(claim) && qualification(claim) === atom,
       ),
     );
-    if (sources.length && sources.every(Boolean))
-      return {
-        ...base,
-        status: "exact",
-        sources: [
-          ...new Map(sources.map((s) => [s!.id, sourceReference(s!)])).values(),
-        ],
-        reason:
-          "Every condition in this alternative has an explicit verified source.",
-      };
+  const whole = find(qualification(r.text));
+  const tree = conditions(qualification(r.text));
+  // A literal verified compound claim can support the exact same complete wording.
+  function evaluate(node: Conditions): {
+    complete: boolean;
+    sources: CandidateEvidence[];
+  } {
+    if ("atom" in node) {
+      const source = find(node.atom);
+      return { complete: Boolean(source), sources: source ? [source] : [] };
+    }
+    const children = node.children.map(evaluate);
+    if (node.operator === "or")
+      return (
+        children.find((c) => c.complete) ??
+        children.sort((a, b) => b.sources.length - a.sources.length)[0]!
+      );
+    return {
+      complete: children.every((c) => c.complete),
+      sources: children.flatMap((c) => c.sources),
+    };
   }
-  // An incomplete conjunction earns partial credit only for explicitly supported atoms.
-  const atoms = clean(r.text)
-    .split(/\s+and\s+|,\s*/u)
-    .map(term);
-  const partial = pool.filter((c) =>
-    c.claims.some((s) => !negative.test(s) && atoms.includes(term(s))),
-  );
-  if (atoms.length > 1 && partial.length && !/\bor\b/.test(r.text))
+  if (!tree && !whole)
     return {
       ...base,
-      status: "partial",
-      sources: partial.map(sourceReference),
-      reason: "Only some listed conditions have explicit verified evidence.",
+      reason:
+        "Mixed or unbalanced qualification conditions need review; no AND/OR precedence was assumed.",
+    };
+  const result = whole ? { complete: true, sources: [whole] } : evaluate(tree!);
+  if (result.sources.length)
+    return {
+      ...base,
+      status: result.complete ? "exact" : "partial",
+      sources: [
+        ...new Map(
+          result.sources.map((c) => [c.id, sourceReference(c)]),
+        ).values(),
+      ],
+      reason: result.complete
+        ? "Every condition in an explicitly grouped alternative has verified evidence."
+        : "Only part of this qualification has explicit verified evidence.",
     };
   return {
     ...base,
