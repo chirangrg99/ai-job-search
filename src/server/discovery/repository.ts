@@ -198,7 +198,7 @@ export function discoveryRepository(
     }
     return count.count ?? 0;
   }
-  async function overview(): Promise<DiscoveryOverview> {
+  async function overview(includeItems = true): Promise<DiscoveryOverview> {
     const profile = await owner();
     const [searches, runs, items, sources, pending] = await Promise.all([
       client
@@ -219,7 +219,7 @@ export function discoveryRepository(
         .from("jobs")
         .select(
           "id,normalized_data,discovered_at,deduplication_state,likely_duplicate_of",
-          { count: "exact" },
+          { count: "exact", head: !includeItems },
         )
         .eq("owner_profile_id", profile)
         .order("discovered_at", { ascending: false })

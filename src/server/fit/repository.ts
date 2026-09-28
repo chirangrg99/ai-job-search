@@ -26,6 +26,24 @@ export function stableStringify(value: unknown): string {
 }
 export const fingerprint = (value: unknown) =>
   createHash("sha256").update(stableStringify(value)).digest("hex");
+export function assessmentHash(
+  input: FitInput,
+  sourceHash: string,
+  parserModel: string,
+  parserVersion: string,
+  mode: FitMode,
+) {
+  return fingerprint({
+    input,
+    sourceHash,
+    parserModel,
+    parserVersion,
+    config: FIT_CONFIG,
+    mode,
+    semanticVersion: mode === "semantic" ? SEMANTIC_VERSION : null,
+    semanticModel: mode === "semantic" ? SEMANTIC_MODEL : null,
+  });
+}
 export type FitSnapshot = {
   profileId: string;
   jobId: string;
@@ -76,16 +94,13 @@ export function fitRepository(
       sourceComplete: job.complete,
     };
     const sourceHash = fingerprint(job.source);
-    const hash = fingerprint({
+    const hash = assessmentHash(
       input,
       sourceHash,
       parserModel,
-      parserVersion: parsed.prompt_version,
-      config: FIT_CONFIG,
+      parsed.prompt_version,
       mode,
-      semanticVersion: mode === "semantic" ? SEMANTIC_VERSION : null,
-      semanticModel: mode === "semantic" ? SEMANTIC_MODEL : null,
-    });
+    );
     return { profileId: job.profileId, jobId, input, hash, mode, sourceHash };
   }
   async function current(snapshot: FitSnapshot) {

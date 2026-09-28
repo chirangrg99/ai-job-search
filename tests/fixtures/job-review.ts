@@ -1,0 +1,25 @@
+import type { ReviewJob } from "../../src/features/job-review/model";
+export const reviewJobFixture = (
+  patch: Partial<ReviewJob> = {},
+): ReviewJob => ({
+  id: "job-a",
+  title: "Frontend Developer",
+  company: "Acme",
+  location: "Toronto",
+  remoteType: "hybrid",
+  employmentType: "full_time",
+  provider: "adzuna",
+  salaryMin: 50000,
+  salaryMax: 70000,
+  salaryCurrency: "CAD",
+  salaryPeriod: "year",
+  salaryEstimated: false,
+  postedAt: null,
+  discoveredAt: "2026-09-28T10:00:00Z",
+  status: "new",
+  submittedAt: null,
+  searchIds: ["83000000-0000-4000-8000-000000000001"],
+  fit: { state: "unassessed" },
+  likelyDuplicateOf: null,
+  ...patch,
+});

@@ -24,7 +24,7 @@ it("explains the score with source IDs and verification labels", async () => {
     screen.getByRole("meter", { name: "Evidence fit score" }),
   ).toHaveAttribute("value", "100");
   await userEvent.click(screen.getAllByText("View sources")[0]!);
-  expect(screen.getAllByText(/Verified source/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/VERIFIED source/).length).toBeGreaterThan(0);
   expect(screen.getAllByText(/Source ID/).length).toBeGreaterThan(0);
 });
 it("renders insufficient evidence without presenting zero as a fit judgement", () => {
@@ -75,5 +75,5 @@ it("marks transferable semantic matches as AI drafts", () => {
     method: "semantic",
   };
   render(<FitResultView result={r} />);
-  expect(screen.getByText("Transferable — not exact · AI draft")).toBeVisible();
+  expect(screen.getByText("Transferable — not exact · AI_DRAFT")).toBeVisible();
 });

@@ -5,8 +5,8 @@ const names = {
   exact: "Exact evidence",
   partial: "Partial evidence",
   transferable: "Transferable — not exact",
-  missing: "Unsupported",
-  unknown: "Needs input",
+  missing: "UNSUPPORTED",
+  unknown: "NEEDS_INPUT",
 };
 export function FitResultView({ result }: { result: FitResult }) {
   return (
@@ -113,66 +113,103 @@ export function FitResultView({ result }: { result: FitResult }) {
         {result.missingRequiredRequirements.length} required gaps ·{" "}
         {result.missingPreferredRequirements.length} preferred gaps
       </p>
-      <div className="space-y-3">
-        {result.matches.map((m) => (
-          <article
-            key={m.id}
-            className="space-y-2 rounded-md border p-4 [overflow-wrap:anywhere]"
-          >
-            <h4 className="font-medium">{m.text}</h4>
-            <p className="text-xs text-text-secondary">
-              {categoryLabels[m.category]} · {m.priority}
+      {[
+        {
+          title: "Exact matches",
+          matches: result.matches.filter((m) => m.status === "exact"),
+        },
+        {
+          title: "Partial & transferable matches",
+          matches: result.matches.filter(
+            (m) => m.status === "partial" || m.status === "transferable",
+          ),
+        },
+        {
+          title: "Gaps & missing evidence",
+          matches: result.matches.filter(
+            (m) => m.status === "missing" || m.status === "unknown",
+          ),
+        },
+      ].map((group) => (
+        <section key={group.title} className="space-y-3">
+          <h3 className="font-semibold">
+            {group.title} ({group.matches.length})
+          </h3>
+          {!group.matches.length && (
+            <p className="text-sm text-text-secondary">
+              None in this assessment.
             </p>
-            <p
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${m.status === "exact" ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}
+          )}
+          {group.matches.map((m) => (
+            <article
+              key={m.id}
+              className="space-y-2 rounded-md border p-4 [overflow-wrap:anywhere]"
             >
-              {m.status === "exact" ? (
-                <BadgeCheck className="size-4" aria-hidden="true" />
-              ) : (
-                <CircleHelp className="size-4" aria-hidden="true" />
+              <h4 className="font-medium">{m.text}</h4>
+              <p className="text-xs text-text-secondary">
+                {categoryLabels[m.category]} · {m.priority}
+              </p>
+              <p
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${m.status === "exact" ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}
+              >
+                {m.status === "exact" ? (
+                  <BadgeCheck className="size-4" aria-hidden="true" />
+                ) : (
+                  <CircleHelp className="size-4" aria-hidden="true" />
+                )}
+                {names[m.status]}
+                {m.method === "semantic" ? " · AI_DRAFT" : ""}
+              </p>
+              {m.sources.some((source) => source.kind !== "preference") && (
+                <p className="text-xs font-medium text-success">
+                  VERIFIED candidate evidence ·{" "}
+                  {
+                    m.sources.filter((source) => source.kind !== "preference")
+                      .length
+                  }{" "}
+                  source(s)
+                </p>
               )}
-              {names[m.status]}
-              {m.method === "semantic" ? " · AI draft" : ""}
-            </p>
-            <p className="text-sm text-text-secondary">{m.reason}</p>
-            <details>
-              <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
-                View sources
-              </summary>
-              <p className="text-xs font-medium">Job wording</p>
-              <blockquote className="my-2 text-sm whitespace-pre-wrap">
-                {m.evidence}
-              </blockquote>
-              {m.sources.map((s) => (
-                <div key={`${s.kind}-${s.id}`} className="mt-3 border-t pt-3">
-                  <p className="text-sm font-medium">
-                    {s.kind === "preference"
-                      ? "Saved preference"
-                      : "Verified source"}
-                    : {s.label}
-                  </p>
-                  <blockquote className="my-2 text-sm whitespace-pre-wrap">
-                    {s.quote}
-                  </blockquote>
-                  <p className="text-xs break-all text-text-secondary">
-                    Source ID: {s.id} · Revision: {s.revision}
-                  </p>
-                  <Link
-                    className="inline-block min-h-11 py-3 text-sm text-primary underline"
-                    href={
-                      s.kind === "preference"
-                        ? "/preferences"
-                        : `/profile#section-${s.kind === "bullet" ? "experience" : s.kind}`
-                    }
-                  >
-                    Review source
-                  </Link>
-                </div>
-              ))}
-            </details>
-          </article>
-        ))}
-      </div>
+              <p className="text-sm text-text-secondary">{m.reason}</p>
+              <details>
+                <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium">
+                  View sources
+                </summary>
+                <p className="text-xs font-medium">Job wording</p>
+                <blockquote className="my-2 text-sm whitespace-pre-wrap">
+                  {m.evidence}
+                </blockquote>
+                {m.sources.map((s) => (
+                  <div key={`${s.kind}-${s.id}`} className="mt-3 border-t pt-3">
+                    <p className="text-sm font-medium">
+                      {s.kind === "preference"
+                        ? "Saved preference"
+                        : "VERIFIED source"}
+                      : {s.label}
+                    </p>
+                    <blockquote className="my-2 text-sm whitespace-pre-wrap">
+                      {s.quote}
+                    </blockquote>
+                    <p className="text-xs break-all text-text-secondary">
+                      Source ID: {s.id} · Revision: {s.revision}
+                    </p>
+                    <Link
+                      className="inline-block min-h-11 py-3 text-sm text-primary underline"
+                      href={
+                        s.kind === "preference"
+                          ? "/preferences"
+                          : `/profile#section-${s.kind === "bullet" ? "experience" : s.kind}`
+                      }
+                    >
+                      Review source
+                    </Link>
+                  </div>
+                ))}
+              </details>
+            </article>
+          ))}
+        </section>
+      ))}
     </section>
   );
 }

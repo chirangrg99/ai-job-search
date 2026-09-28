@@ -33,5 +33,7 @@ export async function assessSavedJob(raw: unknown): Promise<FitActionResult> {
     };
   } finally {
     revalidatePath(`/jobs/${request.data.jobId}`);
+    revalidatePath("/jobs");
+    revalidatePath("/");
   }
 }
