@@ -41,6 +41,19 @@ Decision: existing shadcn Button/Input, native labelled controls, semantic HTML 
 - Production build passes with `npm run build -- --webpack`.
 - Production server starts on localhost. Unauthenticated Dashboard/Jobs/Job Detail/Applications redirect to login; login returns HTTP 200.
 - Default Turbopack build is blocked by this sandbox's local worker port restriction (`Operation not permitted`), including after network permission was granted. Webpack builds the same application successfully.
-- Chromium from the existing local Playwright installation exits at launch. No authenticated browser or screenshot verification is claimed; keyboard behavior is verified with React Testing Library. Visual/browser QA remains a manual check.
+- Initial Chromium launch was blocked by the sandbox. The authenticated browser recheck below supersedes that limitation.
 
 No credentials were printed, added or committed. The pre-existing deletion of `AGENTS.md` is excluded from this phase's commit.
+
+## Browser QA recheck — 2026-09-29
+
+With the session permission change applied, the existing Playwright Chromium launches successfully. Started the production server on `http://127.0.0.1:3100` and signed in using the user-provided test account. Credentials and browser session state were not written to files.
+
+- Inspected Dashboard and Jobs screenshots at 1440px, 390px and 320px widths. No document horizontal overflow. Desktop table and mobile lists render successfully.
+- Inspected Job Detail Overview, Match Analysis and Description on desktop, plus the 320px detail layout. No document horizontal overflow or clipped controls in inspected views.
+- Browser assertions passed for search/no-results, clear filters, page 2 navigation, sort submission, arrow/End keyboard tab activation, mobile navigation opening, Escape closing and focus restoration.
+- No uncaught page JavaScript errors were observed during the screen walkthrough.
+- One chained test timed out locating the sorting label after pagination. A separate check directly exercised the rendered sorting select and successfully submitted the sort query; this was not treated as a product failure.
+- The test account's jobs have no current assessment, so Match Analysis's unassessed state was verified. Populated fit scores and evidence groups remain covered by the automated suite, not this live visual run. No AI, sync, application preparation or profile mutations were triggered.
+
+Screenshots remain in ignored `work/qa-*.png`; account/job screenshots are not committed. No application code changes were needed for this recheck.
