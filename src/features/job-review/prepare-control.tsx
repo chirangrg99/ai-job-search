@@ -50,11 +50,17 @@ export function PrepareControl({
           : "Start a preparation record for this job. You will still apply manually on the original posting."}
       </p>
       <p className="text-xs text-text-secondary">
-        Resume and answer generation are not available yet. Preparation does not
-        mark a package Ready to Apply.
+        Tailor a resume in your application package. Preparation does not mark a
+        package Ready to Apply.
       </p>
       {active && (
         <div className="flex flex-wrap gap-3">
+          <Link
+            href="/applications"
+            className="min-h-11 py-3 text-sm text-primary underline"
+          >
+            Open application packages
+          </Link>
           <Link
             href="/profile"
             className="min-h-11 py-3 text-sm text-primary underline"

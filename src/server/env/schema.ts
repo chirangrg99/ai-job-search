@@ -42,6 +42,12 @@ export const serverEnvSchema = z
         .trim()
         .regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,119}$/),
     ),
+    OPENAI_RESUME_MODEL: optionalValue(
+      z
+        .string()
+        .trim()
+        .regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,119}$/),
+    ),
     ADZUNA_APP_ID: optionalValue(z.string().trim().min(1)),
     ADZUNA_APP_KEY: optionalValue(z.string().trim().min(1)),
   })

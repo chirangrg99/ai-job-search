@@ -102,6 +102,8 @@ export type Database = {
       };
       applications: {
         Row: {
+          resume_generation_token: string | null;
+          resume_generation_started_at: string | null;
           application_confirmation: string | null;
           cover_letter: string | null;
           created_at: string;
@@ -116,6 +118,8 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
+          resume_generation_token?: string | null;
+          resume_generation_started_at?: string | null;
           application_confirmation?: string | null;
           cover_letter?: string | null;
           created_at?: string;
@@ -130,6 +134,8 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
+          resume_generation_token?: string | null;
+          resume_generation_started_at?: string | null;
           application_confirmation?: string | null;
           cover_letter?: string | null;
           created_at?: string;
@@ -1278,6 +1284,25 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      claim_resume_generation: {
+        Args: { target_application: string };
+        Returns: string | null;
+      };
+      release_resume_generation: {
+        Args: { target_application: string; lease_token: string };
+        Returns: undefined;
+      };
+      save_resume_generation: {
+        Args: {
+          target_application: string;
+          lease_token: string;
+          content: Json;
+          validation: Json;
+          response_model: string;
+          prompt: string;
+        };
+        Returns: string;
+      };
       claim_job_parse: {
         Args: {
           expected_complete: boolean;
