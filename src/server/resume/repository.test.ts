@@ -119,7 +119,7 @@ it("saves new history through the lease RPC without updating applications to rea
     expect.objectContaining({
       target_application: "app",
       lease_token: "lease",
-      prompt: "tailored-resume-v1",
+      prompt: "tailored-resume-v2",
     }),
   );
   expect(JSON.stringify(client.rpc.mock.calls)).not.toContain("ready_to_apply");

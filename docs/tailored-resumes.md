@@ -18,7 +18,7 @@ A generation request accepts only an application ID and explicit consent. The se
 
 `OpenAIResumeClient` uses the Responses API with strict Zod structured outputs, `store: false`, an 8,000 output-token ceiling and a 60-second timeout per request. Automatic retries are disabled. The default model is the existing application's `gpt-4.1-mini-2025-04-14`; optional server-only `OPENAI_RESUME_MODEL` overrides it. `OPENAI_API_KEY` remains server-only. No keys, candidate payloads or SDK request details are logged.
 
-The generator can reorder, shorten and emphasize supported facts. Its schema has headline, professional summary, skills, selected experience/project entries and education/credential references. Each rewritten claim contains exact field quotations and source keys (`kind:id`). Employer/title/date and institution/credential fields are **not writable model output**: preview resolves them from the saved verified source snapshot. Experience bullets must cite the selected bullet belonging to that same employer record.
+The generator can reorder, shorten and emphasize supported facts. Its schema has headline, professional summary, skills, selected experience/project entries and education/credential references. Each rewritten claim contains exact field quotations and source keys (`kind:id`). Prompt `tailored-resume-v2` supplies those keys explicitly and constrains generated references to a JSON Schema enum of the selected keys. Employer/title/date and institution/credential fields are **not writable model output**: preview resolves them from the saved verified source snapshot. Experience bullets must cite the selected bullet belonging to that same employer record.
 
 ## Validation stages
 

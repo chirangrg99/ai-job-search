@@ -30,7 +30,7 @@ it.skipIf(!enabled)(
       context,
       await ai.review(draft, context),
     );
-    expect(validation.passed).toBe(true);
+    expect(validation.passed, JSON.stringify(validation.issues)).toBe(true);
     expect(JSON.stringify(draft)).not.toContain("Kubernetes");
   },
   150000,

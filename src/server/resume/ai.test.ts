@@ -45,11 +45,21 @@ it("strict generation transmits only selected context; review excludes job requi
   });
   expect(JSON.parse(bodies[0].input[0].content)).toEqual({
     job: job.parsed,
-    context,
+    context: {
+      ...context,
+      items: context.items.map((s) => ({
+        ...s,
+        sourceId: `${s.kind}:${s.id}`,
+      })),
+    },
   });
   const reviewInput = JSON.parse(bodies[1].input[0].content);
   expect(Object.keys(reviewInput)).toEqual(["claims"]);
   expect(JSON.stringify(bodies)).not.toContain("Example Logistics");
+  expect(
+    bodies[0].text.format.schema.properties.headline.properties.sources.items
+      .properties.sourceId.enum,
+  ).toEqual(context.items.map((s) => `${s.kind}:${s.id}`));
   expect(bodies[0].tools).toBeUndefined();
 });
 it.each([401, 429, 500])(
